@@ -50,7 +50,7 @@ def generate_pdf_report(data, result, mode):
     for key, value in data.items():
         if key not in ["mode"]:
             nice_key = key.replace('_', ' ').title()
-            pdf.cell(0, 6, f"- {nice_key}: {value}", ln=True)   # Changed • to -
+            pdf.cell(0, 6, f"{nice_key}: {value}", ln=True)   # No bullet
 
     pdf.ln(10)
     pdf.set_font("Arial", "B", 12)
@@ -73,7 +73,7 @@ def generate_pdf_report(data, result, mode):
     pdf.output(filename)
     return filename
 
-# ========================= STREAMLIT APP =========================
+# ========================= MAIN APP =========================
 st.set_page_config(page_title="VetCool HVAC Calculator", page_icon="🔧", layout="centered")
 
 st.markdown("""
@@ -168,16 +168,16 @@ with tab1:
         try:
             pdf_file = generate_pdf_report(data, result, mode)
             with open(pdf_file, "rb") as f:
-                st.download_button("📥 Download PDF Report", f, file_name=pdf_file, mime="application/pdf")
+                st.download_button("Download PDF Report", f, file_name=pdf_file, mime="application/pdf")
             os.remove(pdf_file)
             st.success("PDF generated successfully!")
         except Exception as e:
             st.error(f"PDF Error: {str(e)}")
 
 with tab2:
-    st.header("📘 How to Use")
+    st.header("How to Use")
     st.write("This tool uses simplified Manual J style calculations.")
     st.subheader("Contact VetCool")
-    st.markdown("🌐 **[vetcoolrefrigerant.com](https://vetcoolrefrigerant.com)**")
+    st.markdown("**Website:** [vetcoolrefrigerant.com](https://vetcoolrefrigerant.com)")
 
 st.caption("© VetCool Refrigerant")
