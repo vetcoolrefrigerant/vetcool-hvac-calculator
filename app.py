@@ -74,10 +74,10 @@ def generate_pdf_report(data, result, mode):
         pdf.output(filename)
         return filename
     except Exception as e:
-        st.error(f"PDF Error: {str(e)}")
+        st.error(f"PDF Generation Failed: {str(e)}")
         return None
 
-# ========================= MAIN APP =========================
+# ========================= STREAMLIT APP =========================
 st.set_page_config(page_title="VetCool HVAC Calculator", page_icon="🔧", layout="centered")
 
 st.markdown("""
@@ -97,7 +97,7 @@ except:
 st.title("VetCool HVAC Load Calculator")
 st.markdown("**Professional Heating & Cooling Load Estimator**")
 
-# Quick Presets + UI code (same as before)
+# Quick Presets and UI (same as before)
 st.subheader("Quick Presets")
 preset = st.selectbox("Choose a common scenario", [
     "Custom Input", "Small House (1200 sq ft)", "Medium House (2000 sq ft)", 
@@ -175,6 +175,7 @@ with tab1:
                 with open(pdf_file, "rb") as f:
                     st.download_button("📥 Download PDF Report", f, file_name=pdf_file, mime="application/pdf")
                 os.remove(pdf_file)
+                st.success("PDF generated successfully!")
             else:
                 st.warning("PDF file was not created")
         except Exception as e:
