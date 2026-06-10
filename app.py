@@ -3,36 +3,29 @@ from fpdf import FPDF
 from datetime import datetime
 import os
 
-# --- Dark Mode + VetCool Branding ---
-st.set_page_config(page_title="VetCool HVAC Calculator", page_icon="🔧", layout="centered")
+# ========================= PAGE CONFIG & STYLING =========================
+st.set_page_config(
+    page_title="VetCool HVAC Calculator",
+    page_icon="🔧",
+    layout="centered"
+)
 
 st.markdown("""
 <style>
-    .stApp {
-        background-color: #0E1117;
-        color: #FFFFFF;
-    }
-    .stButton>button {
-        background-color: #E30613;
-        color: white;
+    .stApp { background-color: #0E1117; color: #FFFFFF; }
+    .stButton>button { 
+        background-color: #E30613; 
+        color: white; 
+        font-weight: bold;
         border: none;
     }
-    .stButton>button:hover {
-        background-color: #FF1A1A;
-    }
-    h1, h2, h3, h4 {
-        color: #FFFFFF;
-    }
-    .stSelectbox, .stNumberInput, .stRadio {
-        color: white;
-    }
-    .css-1d391kg {  /* Header area */
-        background-color: #1A1C23;
-    }
+    .stButton>button:hover { background-color: #FF1A1A; }
+    h1, h2, h3, h4 { color: #FFFFFF; }
+    .stSelectbox, .stNumberInput { color: white; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Logo ---
+# ========================= LOGO =========================
 try:
     st.image("vetcool_logo.png", width=280)
 except:
@@ -40,22 +33,36 @@ except:
 
 st.title("VetCool HVAC Load Calculator")
 st.markdown("**Professional Heating & Cooling Load Estimator**")
+st.caption("Manual J Style • Duct Sizing • Free Tool")
 
-# Quick Presets
+# ========================= QUICK PRESETS =========================
 st.subheader("Quick Presets")
-preset = st.selectbox("Choose a common scenario", 
-    ["Custom Input", "Small House (1200 sq ft)", "Medium House (2000 sq ft)", "Large House (3000 sq ft)"])
+preset = st.selectbox("Choose a common scenario", [
+    "Custom Input",
+    "Small House (1200 sq ft)",
+    "Medium House (2000 sq ft)",
+    "Large House (3000 sq ft)",
+    "Small Office",
+    "Restaurant",
+    "Warehouse"
+])
 
-if preset != "Custom Input":
-    if preset == "Small House (1200 sq ft)":
-        defaults = {"walls": 800, "windows": 150, "roof": 1200, "volume": 9600, "occupants": 3}
-    elif preset == "Medium House (2000 sq ft)":
-        defaults = {"walls": 1400, "windows": 250, "roof": 2000, "volume": 16000, "occupants": 5}
-    else:
-        defaults = {"walls": 2000, "windows": 400, "roof": 3000, "volume": 24000, "occupants": 7}
+if preset == "Small House (1200 sq ft)":
+    defaults = {"walls": 800, "windows": 150, "roof": 1200, "volume": 9600, "occupants": 3}
+elif preset == "Medium House (2000 sq ft)":
+    defaults = {"walls": 1400, "windows": 250, "roof": 2000, "volume": 16000, "occupants": 5}
+elif preset == "Large House (3000 sq ft)":
+    defaults = {"walls": 2000, "windows": 400, "roof": 3000, "volume": 24000, "occupants": 7}
+elif preset == "Small Office":
+    defaults = {"walls": 1800, "windows": 300, "roof": 1800, "volume": 14400, "occupants": 12}
+elif preset == "Restaurant":
+    defaults = {"walls": 1500, "windows": 250, "roof": 1500, "volume": 12000, "occupants": 25}
+elif preset == "Warehouse":
+    defaults = {"walls": 4000, "windows": 100, "roof": 5000, "volume": 80000, "occupants": 8}
 else:
     defaults = {"walls": 1200, "windows": 200, "roof": 1500, "volume": 9000, "occupants": 4}
 
+# ========================= MAIN CALCULATION TAB =========================
 tab1, tab2 = st.tabs(["🧮 New Calculation", "📘 How to Use"])
 
 with tab1:
@@ -85,11 +92,17 @@ with tab1:
 
     if st.button("Calculate Load", type="primary", use_container_width=True):
         data = {
-            't_indoor': t_indoor, 't_outdoor': t_outdoor,
-            'area_walls': area_walls, 'u_walls': u_walls,
-            'area_windows': area_windows, 'u_windows': u_windows,
-            'area_roof': area_roof, 'u_roof': u_roof,
-            'volume': volume, 'ach': ach, 'occupants': occupants,
+            't_indoor': t_indoor,
+            't_outdoor': t_outdoor,
+            'area_walls': area_walls,
+            'u_walls': u_walls,
+            'area_windows': area_windows,
+            'u_windows': u_windows,
+            'area_roof': area_roof,
+            'u_roof': u_roof,
+            'volume': volume,
+            'ach': ach,
+            'occupants': occupants,
             'mode': mode
         }
 
@@ -102,15 +115,38 @@ with tab1:
             st.success(f"**Total Cooling Load: {result['total_btu_hr']} BTU/hr** ({result['tons']} Tons)")
             st.info(f"**Supply Airflow: {result['cfm']} CFM**")
 
+        # Duct Sizing Recommendation
+        st.subheader("📏 Duct Sizing Recommendation")
+        cfm = result.get('cfm', 0)
+        if cfm < 400:
+            duct_text = "8-10 inch round duct"
+        elif cfm < 800:
+            duct_text = "12-14 inch round duct"
+        else:
+            duct_text = "16+ inch or rectangular duct"
+        st.info(f"**Suggested Main Duct Size:** {duct_text} for {cfm} CFM")
+
+        # Share Button
+        share_text = f"VetCool HVAC Result\nType: {mode}\nTotal: {result.get('total_btu_hr')} BTU/hr\nTons: {result.get('tons', 'N/A')}\nAirflow: {result.get('cfm')} CFM\n\nCalculated with VetCool Tool"
+        if st.button("🔗 Share Result"):
+            st.code(share_text)
+            st.success("Copy the text above to share!")
+
+        # PDF Download
         try:
             pdf_file = generate_pdf_report(data, result, mode)
             with open(pdf_file, "rb") as f:
-                st.download_button("📥 Download PDF Report", f, file_name=pdf_file, mime="application/pdf")
+                st.download_button(
+                    label="📥 Download PDF Report",
+                    data=f,
+                    file_name=pdf_file,
+                    mime="application/pdf"
+                )
             os.remove(pdf_file)
         except:
             st.warning("Could not generate PDF")
 
-# Calculation Functions
+# ========================= CALCULATION FUNCTIONS =========================
 def calculate_heating_load(data):
     q_walls = data['u_walls'] * data['area_walls'] * (data['t_indoor'] - data['t_outdoor'])
     q_windows = data['u_windows'] * data['area_windows'] * (data['t_indoor'] - data['t_outdoor'])
@@ -180,15 +216,18 @@ def generate_pdf_report(data, result, mode):
     pdf.output(filename)
     return filename
 
-# How to Use
+# ========================= HOW TO USE TAB =========================
 with tab2:
     st.header("📘 How to Use This Calculator")
     st.subheader("1. Basic Instructions")
-    st.write("Choose Heating or Cooling → Enter temperatures → Fill building details → Click Calculate.")
-    st.subheader("2. Tips")
-    st.write("Use realistic outdoor temps for your area. Measure rooms separately for best accuracy.")
-    st.subheader("3. About VetCool")
-    st.write("Provided by VetCool Refrigerant to support the HVAC community.")
+    st.write("Select type → Enter temperatures → Fill building details → Click Calculate.")
+    
+    st.subheader("2. Manual J Notes")
+    st.write("This tool uses simplified CLTD / Manual J style calculations. Good for estimates.")
+
+    st.subheader("3. Contact VetCool")
+    st.markdown("🌐 **[vetcoolrefrigerant.com](https://vetcoolrefrigerant.com)**")
+    st.write("Need full Manual J reports, duct design, or refrigerant supply? Visit our website.")
 
 st.markdown("---")
-st.caption("© VetCool Refrigerant - Professional HVAC Tools")
+st.caption("© VetCool Refrigerant | vetcoolrefrigerant.com")
