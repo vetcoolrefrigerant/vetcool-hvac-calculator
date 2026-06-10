@@ -5,7 +5,7 @@ import os
 
 st.set_page_config(page_title="VetCool HVAC Calculator", page_icon="🔧", layout="centered")
 
-# Dark Theme + Branding
+# Dark Theme
 st.markdown("""
 <style>
     .stApp { background-color: #0E1117; color: #FFFFFF; }
@@ -181,7 +181,7 @@ def generate_pdf_report(data, result, mode):
     pdf.output(filename)
     return filename
 
-# How to Use
+# ========================= HOW TO USE =========================
 with tab2:
     st.header("📘 How to Use")
     st.write("This tool uses simplified Manual J style calculations.")
