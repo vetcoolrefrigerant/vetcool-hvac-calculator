@@ -10,7 +10,7 @@ LANG_DICT = {
     "English": {
         "title": "VetCool Field Load Calculator",
         "subtitle": "Professional Estimation & Sanity-Check Tool",
-        "sidebar_settings": "⚙️ Global Settings",
+        "sidebar_settings": "Global Settings",
         "select_lang": "Language / Idioma",
         "climate_loc": "Design Climate Location",
         "presets": "Property Presets",
@@ -19,8 +19,8 @@ LANG_DICT = {
         "calc_path": "Calculation Path",
         "heat_load": "Heating Load",
         "cool_load": "Cooling Load",
-        "target_indoor": "Target Indoor Temp (°F)",
-        "design_outdoor": "Design Outdoor Temp (°F)",
+        "target_indoor": "Target Indoor Temp (F)",
+        "design_outdoor": "Design Outdoor Temp (F)",
         "humidity_grains": "Outdoor Humidity Grains",
         "weather_profile_msg": "Using standard local weather profiles",
         "building_metrics": "Building Envelope Metrics",
@@ -41,17 +41,17 @@ LANG_DICT = {
         "shgc_lbl": "Window Solar Coefficient (SHGC)",
         "shgc_help": "Solar Heat Gain Coefficient. Lower value blocks more radiant heat.",
         "btn_calc": "Generate Load Profiles",
-        "heat_capacity": "🔥 Estimated Heating Capacity",
-        "cool_capacity": "❄️ Estimated Cooling Capacity",
+        "heat_capacity": "Estimated Heating Capacity",
+        "cool_capacity": "Estimated Cooling Capacity",
         "circ_target": "Calculated Circulation Target",
         "req_airflow": "Required Air Flow",
         "nominal_tons": "Nominal Tons",
-        "suggested_duct": "📐 Suggested Trunk Line Profile",
-        "btn_pdf": "📥 Export Branded PDF Proposal",
+        "suggested_duct": "Suggested Trunk Line Profile",
+        "btn_pdf": "Export Branded PDF Proposal",
         "pdf_fault": "Render System Fault",
-        "tab_compute": "🧮 Compute System Loads",
-        "tab_method": "📘 Application Methodology",
-        "method_title": "📘 Operational Calculations & Assumptions",
+        "tab_compute": "Compute System Loads",
+        "tab_method": "Application Methodology",
+        "method_title": "Operational Calculations & Assumptions",
         "method_body": """This app functions as an advanced block-load model designed for rapid technical sales assistance. 
 Unlike simple linear calculators, it incorporates:
 
@@ -66,6 +66,7 @@ Unlike simple linear calculators, it incorporates:
         "pdf_target": "Design Target Location",
         "pdf_inputs": "INPUT DESIGN PARAMETERS",
         "pdf_results": "ESTIMATED LOAD RESULTS",
+        "pdf_duct": "Suggested Trunk Line Profile",
         "presets_dict": {
             "Custom Input": "Custom Input",
             "Small House (1200 sq ft)": "Small House (1200 sq ft)",
@@ -77,69 +78,70 @@ Unlike simple linear calculators, it incorporates:
     },
     "Spanish": {
         "title": "Calculadora de Carga de Campo VetCool",
-        "subtitle": "Herramienta Profesional de Estimación y Verificación",
-        "sidebar_settings": "⚙️ Configuración Global",
+        "subtitle": "Herramienta Profesional de Estimacion y Verificacion",
+        "sidebar_settings": "Configuracion Global",
         "select_lang": "Language / Idioma",
-        "climate_loc": "Ubicación del Clima de Diseño",
+        "climate_loc": "Ubicacion del Clima de Diseno",
         "presets": "Preajustes de la Propiedad",
         "safety_margin": "Margen de Seguridad (%)",
-        "safety_desc": "Colchón Incluido",
-        "calc_path": "Tipo de Cálculo",
-        "heat_load": "Carga de Calefacción",
+        "safety_desc": "Colchon Incluido",
+        "calc_path": "Tipo de Calculo",
+        "heat_load": "Carga de Calefaccion",
         "cool_load": "Carga de Enfriamiento",
-        "target_indoor": "Temp. Interior Objetivo (°F)",
-        "design_outdoor": "Temp. Exterior de Diseño (°F)",
+        "target_indoor": "Temp. Interior Objetivo (F)",
+        "design_outdoor": "Temp. Exterior de Diseno (F)",
         "humidity_grains": "Granos de Humedad Exterior",
-        "weather_profile_msg": "Usando perfiles climáticos locales estándar",
-        "building_metrics": "Métricas del Envolvente del Edificio",
-        "net_wall": "Área Neta de Pared (sq ft)",
-        "tot_window": "Área Total de Ventanas (sq ft)",
-        "roof_area": "Área de Techo/Cielo Raso (sq ft)",
+        "weather_profile_msg": "Usando perfiles climaticos locales estandar",
+        "building_metrics": "Metricas del Envolvente del Edificio",
+        "net_wall": "Area Neta de Pared (sq ft)",
+        "tot_window": "Area Total de Ventanas (sq ft)",
+        "roof_area": "Area de Techo/Cielo Raso (sq ft)",
         "wall_ins": "Aislamiento de Pared (Valor-U)",
         "window_glaze": "Acristalamiento de Ventana (Valor-U)",
         "roof_ins": "Aislamiento de Techo (Valor-U)",
-        "wall_ins_help": "Menor valor significa mejor aislamiento. 0.06 es una pared aislada estándar.",
+        "wall_ins_help": "Menor valor significa mejor aislamiento. 0.06 es una pared aislada estandar.",
         "window_glaze_help": "0.28=Vidrio Triple, 0.48=Vidrio Doble Claro.",
         "roof_ins_help": "0.03=Techo R-38, 0.05=Techo R-21.",
-        "internal_vars": "Variables Internas e Infiltración",
-        "room_vol": "Volumen Cúbico Acondicionado (cu ft)",
+        "internal_vars": "Variables Internas e Infiltracion",
+        "room_vol": "Volumen Cubico Acondicionado (cu ft)",
         "occupants": "Promedio de Ocupantes Continuos",
         "tightness": "Hermeticidad del Envolvente (ACH)",
-        "tightness_help": "Cambios de aire por hora. 0.35 es construcción moderna hermética; 0.75+ tiene fugas.",
+        "tightness_help": "Cambios de aire por hora. 0.35 es construccion moderna hermetica; 0.75+ tiene fugas.",
         "shgc_lbl": "Coeficiente Solar de Ventana (SHGC)",
-        "shgc_help": "Coeficiente de ganancia de calor solar. Un valor más bajo bloquea más calor radiante.",
+        "shgc_help": "Coeficiente de ganancia de calor solar. Un valor mas bajo bloquea mas calor radiante.",
         "btn_calc": "Generar Perfiles de Carga",
-        "heat_capacity": "🔥 Capacidad de Calefacción Estimada",
-        "cool_capacity": "❄️ Capacidad de Enfriamiento Estimada",
-        "circ_target": "Objetivo de Circulación Calculado",
+        "heat_capacity": "Capacidad de Calefaccion Estimada",
+        "cool_capacity": "Capacidad de Enfriamiento Estimada",
+        "circ_target": "Objetivo de Circulacion Calculado",
         "req_airflow": "Flujo de Aire Requerido",
         "nominal_tons": "Toneladas Nominales",
-        "suggested_duct": "📐 Perfil Sugerido de la Línea Principal",
-        "btn_pdf": "📥 Exportar Propuesta en PDF",
+        "suggested_duct": "Perfil Sugerido de la Linea Principal",
+        "btn_pdf": "Exportar Propuesta en PDF",
         "pdf_fault": "Fallo en el Sistema de Renderizado",
-        "tab_compute": "🧮 Calcular Cargas del Sistema",
-        "tab_method": "📘 Metodología de Aplicación",
-        "method_title": "📘 Cálculos Operacionales y Supuestos",
-        "method_body": """Esta aplicación funciona como un modelo avanzado de carga de bloques diseñado para asistencia rápida en ventas técnicas. 
+        "tab_compute": "Calcular Cargas del Sistema",
+        "tab_method": "Metodologia de Aplicacion",
+        "method_title": "Calculos Operacionales y Supuestos",
+        "method_body": """Esta aplicacion funciona como un modelo avanzado de carga de bloques disenado para asistencia rapida en ventas tecnicas. 
 A diferencia de las calculadoras lineales simples, incorpora:
 
-* **CLTD (Diferencia de Temperatura de Carga de Enfriamiento):** Factura los retrasos en la absorción de energía radiante para estructuras de paredes y techos en lugar de simples deltas de temperatura.
-* **Perfiles de Carga Latente:** Evalúa los diferenciales de humedad relativa regional frente a las condiciones interiores estándar (~65 granos de humedad absoluta) para calcular las penalizaciones por infiltración latente.
-* **Variables de Acristalamiento:** Evalúa los vectores solares radiantes aplicando coeficientes de ganancia de calor solar (SHGC) variables directamente contra los valores de exposición del mundo real.
+* **CLTD (Diferencia de Temperatura de Carga de Enfriamiento):** Factura los retrasos en la absorcion de energia radiante para estructuras de paredes y techos en lugar de simples deltas de temperatura.
+* **Perfiles de Carga Latente:** Evalua los diferenciales de humedad relativa regional frente a las condiciones interiores estandar (~65 granos de humedad absoluta) para calcular las penalizaciones por infiltracion latente.
+* **Variables de Acristalamiento:** Evalua los vectores solares radiantes aplicando coeficientes de ganancia de calor solar (SHGC) variables directamente contra los valores de exposicion del mundo real.
 
-*Verifique siempre las estructuras de diseño manual con un protocolo formal ACCA Manual J para el cumplimiento estricto del código.*""",
-        "disclaimer": "Descargo de responsabilidad: Esta estimación se basa en principios simplificados de cálculo de carga de bloques. Está destinada a estimaciones rápidas de campo y verificación de ventas. Verifique con los requisitos del código local antes de comprar el equipo.",
-        "pdf_title": "INFORME DE ESTIMACIÓN DE HVAC VETCOOL",
-        "pdf_scope": "Alcance del Cálculo",
-        "pdf_target": "Ubicación de Diseño Objetivo",
-        "pdf_inputs": "PARÁMETROS DE DISEÑO DE ENTRADA",
+*Verifique siempre las estructuras de diseno manual con un protocolo formal ACCA Manual J para el cumplimiento estricto del codigo.*""",
+        "disclaimer": "Descargo de responsabilidad: Esta estimacion se basa en principios simplificados de calculo de carga de bloques. Esta destinada a estimaciones rapidas de campo y verificacion de ventas. Verifique con los requisitos del codigo local antes de comprar el equipo.",
+        "pdf_title": "INFORME DE ESTIMACION DE HVAC VETCOOL",
+        "pdf_scope": "Alcance del Calculo",
+        "pdf_target": "Ubicacion de Diseno Objetivo",
+        "pdf_inputs": "PARAMETROS DE DISENO DE ENTRADA",
         "pdf_results": "RESULTADOS DE CARGA ESTIMADA",
+        "pdf_duct": "Perfil Sugerido de la Linea Principal",
         "presets_dict": {
             "Custom Input": "Entrada Personalizada",
-            "Small House (1200 sq ft)": "Casa Pequeña (1200 sq ft)",
+            "Small House (1200 sq ft)": "Casa Pequena (1200 sq ft)",
             "Medium House (2000 sq ft)": "Casa Mediana (2000 sq ft)",
             "Large House (3000 sq ft)": "Casa Grande (3000 sq ft)",
-            "Small Office": "Oficina Pequeña",
+            "Small Office": "Oficina Pequena",
             "Restaurant": "Restaurante"
         }
     }
@@ -222,46 +224,49 @@ def generate_pdf_report(data, result, mode, lang, ctx):
     except:
         pass
 
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, ctx["pdf_title"], ln=True, align="C")
+    # Explicit font set to standard Helvetica core distribution
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, str(ctx["pdf_title"]), ln=True, align="C")
     pdf.ln(15)
 
-    pdf.set_font("Arial", "", 12)
+    pdf.set_font("Helvetica", "", 12)
     pdf.cell(0, 8, f"Date / Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=True)
-    pdf.cell(0, 8, f"{ctx['pdf_scope']}: {mode}", ln=True)
+    pdf.cell(0, 8, f"{ctx['pdf_scope']}: {str(mode)}", ln=True)
     pdf.cell(0, 8, f"{ctx['pdf_target']}: {data.get('location')}", ln=True)
     pdf.ln(10)
 
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 8, ctx["pdf_inputs"], ln=True)
-    pdf.set_font("Arial", "", 11)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, str(ctx["pdf_inputs"]), ln=True)
+    pdf.set_font("Helvetica", "", 11)
     
     skip_keys = ["mode", "location", "cltd_wall", "cltd_roof", "moisture_grains"]
     for key, value in data.items():
         if key not in skip_keys:
             nice_key = key.replace('_', ' ').title()
             if "Factor" in nice_key:
-                nice_key = "Safety Cushion" if lang == "English" else "Colchón de Seguridad"
+                nice_key = "Safety Cushion" if lang == "English" else "Colchon de Seguridad"
                 value = f"{round((value - 1) * 100)}%"
             pdf.cell(0, 6, f" - {nice_key}: {value}", ln=True)
 
     pdf.ln(10)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 8, ctx["pdf_results"], ln=True)
-    pdf.set_font("Arial", "", 11)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, str(ctx["pdf_results"]), ln=True)
+    pdf.set_font("Helvetica", "", 11)
 
-    if "Heating" in data['mode'] or "Calefacción" in data['mode']:
+    if "Heating" in data['mode'] or "Calefaccion" in data['mode']:
         pdf.cell(0, 8, f"Total Capacity: {result.get('total_btu_hr'):,} BTU/hr", ln=True)
         pdf.cell(0, 8, f"Airflow / Flujo de Aire: {result.get('cfm')} CFM", ln=True)
     else:
         pdf.cell(0, 8, f"Total Capacity: {result.get('total_btu_hr'):,} BTU/hr (~{result.get('tons')} Tons)", ln=True)
         pdf.cell(0, 8, f"Airflow / Flujo de Aire: {result.get('cfm')} CFM", ln=True)
 
-    pdf.cell(0, 8, f"{ctx['suggested_duct']}: {get_duct_recommendation(result.get('cfm'), lang)}", ln=True)
+    pdf.cell(0, 8, f"{ctx['pdf_duct']}: {get_duct_recommendation(result.get('cfm'), lang)}", ln=True)
 
     pdf.ln(20)
-    pdf.set_font("Arial", "I", 9)
-    pdf.multi_cell(0, 5, ctx["disclaimer"], align="C")
+    pdf.set_font("Helvetica", "I", 9)
+    # Complete normalization cleanup of accent characters specifically inside the PDF array block
+    clean_disclaimer = ctx["disclaimer"].replace("ó", "o").replace("á", "a").replace("í", "i").replace("ú", "u").replace("ñ", "n")
+    pdf.multi_cell(0, 5, clean_disclaimer, align="C")
 
     filename = f"vetcool_report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
     pdf.output(filename)
@@ -290,7 +295,7 @@ except:
 # Language Selector Setup
 with st.sidebar:
     lang = st.radio("Language / Idioma", ["English", "Spanish"], horizontal=True)
-    ctx = LANG_DICT[lang]  # Load active language context dictionary
+    ctx = LANG_DICT[lang]
 
 st.title(ctx["title"])
 st.markdown(f"**{ctx['subtitle']}**")
@@ -301,17 +306,14 @@ with st.sidebar:
     location = st.selectbox(ctx["climate_loc"], list(REGIONAL_DATA.keys()))
     geo_defaults = REGIONAL_DATA[location]
     
-    # Map presets options
     preset_keys = ["Custom Input", "Small House (1200 sq ft)", "Medium House (2000 sq ft)", "Large House (3000 sq ft)", "Small Office", "Restaurant"]
     preset_labels = [ctx["presets_dict"][k] for k in preset_keys]
     selected_preset_label = st.selectbox(ctx["presets"], preset_labels, index=2)
-    # Reverse look-up key
     preset = preset_keys[preset_labels.index(selected_preset_label)]
     
     safety_slider = st.slider(ctx["safety_margin"], min_value=0, max_value=30, value=10, step=5)
     safety_factor = 1.0 + (safety_slider / 100)
 
-# Preset Values Parsing
 if preset == "Small House (1200 sq ft)":
     defaults = {"walls": 800, "windows": 150, "roof": 1200, "volume": 9600, "occupants": 3}
 elif preset == "Medium House (2000 sq ft)":
@@ -345,7 +347,7 @@ with tab1:
             moisture_grains = geo_defaults["moisture_grains"]
             cltd_wall = geo_defaults["cltd_wall"]
             cltd_roof = geo_defaults["cltd_roof"]
-            st.caption(f"{ctx['weather_profile_msg']}: **{t_outdoor}°F DB**")
+            st.caption(f"{ctx['weather_profile_msg']}: **{t_outdoor} F DB**")
 
     with col2:
         st.subheader(ctx["building_metrics"])
@@ -403,7 +405,6 @@ with tab1:
         duct_recommendation = get_duct_recommendation(result['cfm'], lang)
         st.info(f"{ctx['suggested_duct']}: {duct_recommendation}")
 
-        # Export Config
         try:
             pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx)
             with open(pdf_file, "rb") as f:
@@ -416,4 +417,4 @@ with tab2:
     st.header(ctx["method_title"])
     st.markdown(ctx["method_body"])
     st.subheader("VetCool")
-    st.write("🌐 Web: [vetcoolrefrigerant.com](https://vetcoolrefrigerant.com)")
+    st.write("Web: [vetcoolrefrigerant.com](https://vetcoolrefrigerant.com)")
