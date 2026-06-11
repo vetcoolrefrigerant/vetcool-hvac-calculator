@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from fpdf import FPDF
 from datetime import datetime
@@ -296,11 +297,16 @@ if "auth_user" not in st.session_state:
 if st.session_state["auth_user"] is None:
     st.markdown('<hr class="accent-bar">', unsafe_allow_html=True)
     
-    # Centers logo inside the Login Gateway Portal
+    # Centers logo inside the Login Gateway Portal using runtime path compilation
     col_img_l, col_img_c, col_img_r = st.columns([1, 2, 1])
     with col_img_c:
-        if os.path.exists("vetcool_logo.png"):
-            st.image("vetcool_logo.png", use_container_width=True)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        logo_path = os.path.join(current_dir, "vetcool_logo.png")
+        
+        if os.path.exists(logo_path):
+            st.image(logo_path, use_container_width=True)
+        else:
+            st.caption("Syncing Corporate Brand Assets...")
     
     st.markdown('<div class="centered-header"><h1>Vetcool FieldFlow</h1><p>Secure Field Engineering Advisory Gateway</p></div>', unsafe_allow_html=True)
     
@@ -331,16 +337,17 @@ if st.session_state["auth_user"] is None:
 else:
     current_user = st.session_state["auth_user"]
     
-    # Custom Premium Top Utility Bar (Matches Mock-Up Identity placement)
     st.markdown('<hr class="accent-bar">', unsafe_allow_html=True)
     
-    # Main Workspace Layout Header with Center Aligned Corporate Brand Identity
+    # Main Workspace Layout Header with Absolute Path Resolved Corporate Brand Identity
     col_l, col_c, col_r = st.columns([1.5, 2, 1.5])
     with col_c:
-        if os.path.exists("vetcool_logo.png"):
-            st.image("vetcool_logo.png", use_container_width=True)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        logo_path = os.path.join(current_dir, "vetcool_logo.png")
+        
+        if os.path.exists(logo_path):
+            st.image(logo_path, use_container_width=True)
         else:
-            # Fallback if image asset isn't pushed to directory yet
             st.markdown('<div class="centered-header"><h1>VetCool</h1><p>Refrigerant</p></div>', unsafe_allow_html=True)
 
     with st.sidebar:
