@@ -26,6 +26,10 @@ def supabase_auth(email, password, action="login"):
         response = requests.post(url, json=payload, headers=headers)
         res_data = response.json()
         if response.status_code in [200, 201]:
+            # === CRITICAL FIX: Upgrade the global client with the user's secure access token ===
+            if action == "login" and 'access_token' in res_data:
+                supabase.postgrest.auth(res_data['access_token'])
+            
             return {"success": True, "user_id": res_data['user']['id'], "email": res_data['user']['email']}
         else:
             return {"success": False, "error": res_data.get("error_description", res_data.get("msg", "Auth Failed"))}
