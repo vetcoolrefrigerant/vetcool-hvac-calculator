@@ -1,7 +1,82 @@
 import streamlit as st
 from fpdf import FPDF
 from datetime import datetime
+import sqlite3
 import os
+
+# ==============================================================================
+# 0. DATABASE STRUCTURE & STATE MANAGEMENT
+# ==============================================================================
+DB_FILE = "hvac_leads.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS calculations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            project_name TEXT,
+            location TEXT,
+            mode TEXT,
+            lang TEXT,
+            t_indoor REAL, t_outdoor REAL, moisture_grains REAL,
+            cltd_wall REAL, cltd_roof REAL,
+            area_walls REAL, u_walls REAL,
+            area_windows REAL, u_windows REAL,
+            area_roof REAL, u_roof REAL,
+            volume REAL, ach REAL, occupants INTEGER, shgc REAL,
+            safety_factor REAL, total_btu_hr INTEGER, tons REAL, cfm INTEGER
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_calculation(name, data, result, lang_choice):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO calculations (
+            timestamp, project_name, location, mode, lang,
+            t_indoor, t_outdoor, moisture_grains, cltd_wall, cltd_roof,
+            area_walls, u_walls, area_windows, u_windows, area_roof, u_roof,
+            volume, ach, occupants, shgc, safety_factor,
+            total_btu_hr, tons, cfm
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        datetime.now().strftime('%Y-%m-%d %H:%M'), name, data['location'], data['mode'], lang_choice,
+        data['t_indoor'], data['t_outdoor'], data['moisture_grains'], data['cltd_wall'], data['cltd_roof'],
+        data['area_walls'], data['u_walls'], data['area_windows'], data['u_windows'], data['area_roof'], data['u_roof'],
+        data['volume'], data['ach'], data['occupants'], data['shgc'], data['safety_factor'],
+        result['total_btu_hr'], result.get('tons', 0.0), result['cfm']
+    ))
+    conn.commit()
+    conn.close()
+
+def get_calculation_history():
+    if not os.path.exists(DB_FILE):
+        return []
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, project_name, timestamp, mode FROM calculations ORDER BY id DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def load_calculation_by_id(calc_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    # Get column definitions dynamically to build a robust dictionary mapping
+    cursor.execute("SELECT * FROM calculations WHERE id = ?", (calc_id,))
+    row = cursor.fetchone()
+    columns = [description[0] for description in cursor.description]
+    conn.close()
+    if row:
+        return dict(zip(columns, row))
+    return None
+
+# Initialize database storage on launch
+init_db()
 
 # ==============================================================================
 # 1. TRANSLATION DICTIONARY (ENGLISH & SPANISH)
@@ -11,11 +86,11 @@ LANG_DICT = {
         "title": "VetCool Field Load Calculator",
         "subtitle": "Professional Estimation & Sanity-Check Tool",
         "sidebar_settings": "Global Settings",
-        "select_lang": "Language / Idioma",
+        "history_header": "Stored Project History",
+        "proj_name_lbl": "Project / Client Reference Name",
         "climate_loc": "Design Climate Location",
         "presets": "Property Presets",
         "safety_margin": "Safety Margin Cushion (%)",
-        "safety_desc": "Cushion Included",
         "calc_path": "Calculation Path",
         "heat_load": "Heating Load",
         "cool_load": "Cooling Load",
@@ -40,7 +115,7 @@ LANG_DICT = {
         "tightness_help": "Air Changes per Hour. 0.35 is tight modern construction; 0.75+ is leaky.",
         "shgc_lbl": "Window Solar Coefficient (SHGC)",
         "shgc_help": "Solar Heat Gain Coefficient. Lower value blocks more radiant heat.",
-        "btn_calc": "Generate Load Profiles",
+        "btn_calc": "Generate & Save Load Profiles",
         "heat_capacity": "Estimated Heating Capacity",
         "cool_capacity": "Estimated Cooling Capacity",
         "circ_target": "Calculated Circulation Target",
@@ -80,11 +155,11 @@ Unlike simple linear calculators, it incorporates:
         "title": "Calculadora de Carga de Campo VetCool",
         "subtitle": "Herramienta Profesional de Estimacion y Verificacion",
         "sidebar_settings": "Configuracion Global",
-        "select_lang": "Language / Idioma",
+        "history_header": "Historial de Proyectos",
+        "proj_name_lbl": "Nombre de Referencia del Proyecto / Cliente",
         "climate_loc": "Ubicacion del Clima de Diseno",
         "presets": "Preajustes de la Propiedad",
         "safety_margin": "Margen de Seguridad (%)",
-        "safety_desc": "Colchon Incluido",
         "calc_path": "Tipo de Calculo",
         "heat_load": "Carga de Calefaccion",
         "cool_load": "Carga de Enfriamiento",
@@ -109,7 +184,7 @@ Unlike simple linear calculators, it incorporates:
         "tightness_help": "Cambios de aire por hora. 0.35 es construccion moderna hermetica; 0.75+ tiene fugas.",
         "shgc_lbl": "Coeficiente Solar de Ventana (SHGC)",
         "shgc_help": "Coeficiente de ganancia de calor solar. Un valor mas bajo bloquea mas calor radiante.",
-        "btn_calc": "Generar Perfiles de Carga",
+        "btn_calc": "Generar y Guardar Perfiles de Carga",
         "heat_capacity": "Capacidad de Calefaccion Estimada",
         "cool_capacity": "Capacidad de Enfriamiento Estimada",
         "circ_target": "Objetivo de Circulacion Calculado",
@@ -128,7 +203,7 @@ A diferencia de las calculadoras lineales simples, incorpora:
 * **Perfiles de Carga Latente:** Evalua los diferenciales de humedad relativa regional frente a las condiciones interiores estandar (~65 granos de humedad absoluta) para calcular las penalizaciones por infiltracion latente.
 * **Variables de Acristalamiento:** Evalua los vectores solares radiantes aplicando coeficientes de ganancia de calor solar (SHGC) variables directamente contra los valores de exposicion del mundo real.
 
-*Verifique siempre las estructuras de diseno manual con un protocolo formal ACCA Manual J para el cumplimiento estricto del codigo.*""",
+*Verifique siempre las estructuras de diseno manual con un protocolo formal ACCA Manual J para el cumplimiento estricto del código.*""",
         "disclaimer": "Descargo de responsabilidad: Esta estimacion se basa en principios simplificados de calculo de carga de bloques. Esta destinada a estimaciones rapidas de campo y verificacion de ventas. Verifique con los requisitos del codigo local antes de comprar el equipo.",
         "pdf_title": "INFORME DE ESTIMACION DE HVAC VETCOOL",
         "pdf_scope": "Alcance del Calculo",
@@ -224,7 +299,6 @@ def generate_pdf_report(data, result, mode, lang, ctx):
     except:
         pass
 
-    # Explicit font set to standard Helvetica core distribution
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(0, 10, str(ctx["pdf_title"]), ln=True, align="C")
     pdf.ln(15)
@@ -253,7 +327,7 @@ def generate_pdf_report(data, result, mode, lang, ctx):
     pdf.cell(0, 8, str(ctx["pdf_results"]), ln=True)
     pdf.set_font("Helvetica", "", 11)
 
-    if "Heating" in data['mode'] or "Calefaccion" in data['mode']:
+    if "Heating" in str(mode) or "Calefaccion" in str(mode):
         pdf.cell(0, 8, f"Total Capacity: {result.get('total_btu_hr'):,} BTU/hr", ln=True)
         pdf.cell(0, 8, f"Airflow / Flujo de Aire: {result.get('cfm')} CFM", ln=True)
     else:
@@ -264,7 +338,6 @@ def generate_pdf_report(data, result, mode, lang, ctx):
 
     pdf.ln(20)
     pdf.set_font("Helvetica", "I", 9)
-    # Complete normalization cleanup of accent characters specifically inside the PDF array block
     clean_disclaimer = ctx["disclaimer"].replace("ó", "o").replace("á", "a").replace("í", "i").replace("ú", "u").replace("ñ", "n")
     pdf.multi_cell(0, 5, clean_disclaimer, align="C")
 
@@ -300,20 +373,48 @@ with st.sidebar:
 st.title(ctx["title"])
 st.markdown(f"**{ctx['subtitle']}**")
 
+# --- HISTORICAL LEDGER LINK WITH DATABASE ---
 with st.sidebar:
     st.markdown("---")
+    st.subheader(ctx["history_header"])
+    history_records = get_calculation_history()
+    
+    if history_records:
+        history_options = {f"{r[1]} ({r[2]})": r[0] for r in history_records}
+        selected_history = st.selectbox("Select Past Project to Load", ["-- Select Active Project --"] + list(history_options.keys()))
+        
+        if selected_history != "-- Select Active Project --":
+            chosen_id = history_options[selected_history]
+            loaded_calc = load_calculation_by_id(chosen_id)
+            if loaded_calc:
+                # Set dynamic override triggers inside Streamlit local caching
+                st.session_state["override_data"] = loaded_calc
+                st.success(f"Project loaded successfully!")
+    else:
+        st.caption("No saved projects found.")
+
+    st.markdown("---")
     st.header(ctx["sidebar_settings"])
-    location = st.selectbox(ctx["climate_loc"], list(REGIONAL_DATA.keys()))
+    
+    # Read session states if historical override was called
+    active_override = st.session_state.get("override_data", None)
+    
+    init_loc_idx = list(REGIONAL_DATA.keys()).index(active_override["location"]) if active_override else 0
+    location = st.selectbox(ctx["climate_loc"], list(REGIONAL_DATA.keys()), index=init_loc_idx)
     geo_defaults = REGIONAL_DATA[location]
+    
+    proj_name = st.text_input(ctx["proj_name_lbl"], value=active_override["project_name"] if active_override else "Job #1001")
     
     preset_keys = ["Custom Input", "Small House (1200 sq ft)", "Medium House (2000 sq ft)", "Large House (3000 sq ft)", "Small Office", "Restaurant"]
     preset_labels = [ctx["presets_dict"][k] for k in preset_keys]
     selected_preset_label = st.selectbox(ctx["presets"], preset_labels, index=2)
     preset = preset_keys[preset_labels.index(selected_preset_label)]
     
-    safety_slider = st.slider(ctx["safety_margin"], min_value=0, max_value=30, value=10, step=5)
+    init_safety = int(round((active_override["safety_factor"] - 1) * 100)) if active_override else 10
+    safety_slider = st.slider(ctx["safety_margin"], min_value=0, max_value=30, value=init_safety, step=5)
     safety_factor = 1.0 + (safety_slider / 100)
 
+# Preset Values Parsing Logic
 if preset == "Small House (1200 sq ft)":
     defaults = {"walls": 800, "windows": 150, "roof": 1200, "volume": 9600, "occupants": 3}
 elif preset == "Medium House (2000 sq ft)":
@@ -327,20 +428,31 @@ elif preset == "Restaurant":
 else:
     defaults = {"walls": 1200, "windows": 200, "roof": 1500, "volume": 9000, "occupants": 4}
 
+# Override presets values if specific layout project history is loaded
+if active_override:
+    defaults = {
+        "walls": active_override["area_walls"], "windows": active_override["area_windows"],
+        "roof": active_override["area_roof"], "volume": active_override["volume"], "occupants": active_override["occupants"]
+    }
+
 tab1, tab2 = st.tabs([ctx["tab_compute"], ctx["tab_method"]])
 
 with tab1:
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        mode_label = st.radio(ctx["calc_path"], [ctx["heat_load"], ctx["cool_load"]], index=1)
+        init_mode_idx = 0 if (active_override and "Heating" in active_override["mode"]) else 1
+        mode_label = st.radio(ctx["calc_path"], [ctx["heat_load"], ctx["cool_load"]], index=init_mode_idx)
         mode = "Cooling Load" if mode_label == ctx["cool_load"] else "Heating Load"
         
-        t_indoor = st.number_input(ctx["target_indoor"], value=72 if mode == "Heating Load" else 75)
+        default_t_indoor = active_override["t_indoor"] if active_override else (72 if mode == "Heating Load" else 75)
+        t_indoor = st.number_input(ctx["target_indoor"], value=float(default_t_indoor))
         
         if location == "Custom (Manual Override)":
-            t_outdoor = st.number_input(ctx["design_outdoor"], value=95 if mode == "Cooling Load" else 20)
-            moisture_grains = st.number_input(ctx["humidity_grains"], value=100)
+            default_t_out = active_override["t_outdoor"] if active_override else (95 if mode == "Cooling Load" else 20)
+            t_outdoor = st.number_input(ctx["design_outdoor"], value=float(default_t_out))
+            default_grains = active_override["moisture_grains"] if active_override else 100
+            moisture_grains = st.number_input(ctx["humidity_grains"], value=float(default_grains))
             cltd_wall, cltd_roof = 25, 40
         else:
             t_outdoor = geo_defaults["cool_outdoor"] if mode == "Cooling Load" else geo_defaults["heat_outdoor"]
@@ -353,22 +465,30 @@ with tab1:
         st.subheader(ctx["building_metrics"])
         c_sub1, c_sub2 = st.columns(2)
         with c_sub1:
-            area_walls = st.number_input(ctx["net_wall"], value=defaults["walls"])
-            area_windows = st.number_input(ctx["tot_window"], value=defaults["windows"])
-            area_roof = st.number_input(ctx["roof_area"], value=defaults["roof"])
+            area_walls = st.number_input(ctx["net_wall"], value=int(defaults["walls"]))
+            area_windows = st.number_input(ctx["tot_window"], value=int(defaults["windows"]))
+            area_roof = st.number_input(ctx["roof_area"], value=int(defaults["roof"]))
         with c_sub2:
-            u_walls = st.selectbox(ctx["wall_ins"], [0.04, 0.06, 0.08, 0.12, 0.25], index=2, help=ctx["wall_ins_help"])
-            u_windows = st.selectbox(ctx["window_glaze"], [0.28, 0.35, 0.48, 0.70], index=1, help=ctx["window_glaze_help"])
-            u_roof = st.selectbox(ctx["roof_ins"], [0.03, 0.05, 0.08, 0.15], index=1, help=ctx["roof_ins_help"])
+            init_uwalls_idx = [0.04, 0.06, 0.08, 0.12, 0.25].index(active_override["u_walls"]) if active_override and active_override["u_walls"] in [0.04, 0.06, 0.08, 0.12, 0.25] else 2
+            u_walls = st.selectbox(ctx["wall_ins"], [0.04, 0.06, 0.08, 0.12, 0.25], index=init_uwalls_idx, help=ctx["wall_ins_help"])
+            
+            init_uwin_idx = [0.28, 0.35, 0.48, 0.70].index(active_override["u_windows"]) if active_override and active_override["u_windows"] in [0.28, 0.35, 0.48, 0.70] else 1
+            u_windows = st.selectbox(ctx["window_glaze"], [0.28, 0.35, 0.48, 0.70], index=init_uwin_idx, help=ctx["window_glaze_help"])
+            
+            init_uroof_idx = [0.03, 0.05, 0.08, 0.15].index(active_override["u_roof"]) if active_override and active_override["u_roof"] in [0.03, 0.05, 0.08, 0.15] else 1
+            u_roof = st.selectbox(ctx["roof_ins"], [0.03, 0.05, 0.08, 0.15], index=init_uroof_idx, help=ctx["roof_ins_help"])
 
         st.subheader(ctx["internal_vars"])
         c_sub3, c_sub4 = st.columns(2)
         with c_sub3:
-            volume = st.number_input(ctx["room_vol"], value=defaults["volume"])
-            occupants = st.number_input(ctx["occupants"], value=defaults["occupants"], step=1)
+            volume = st.number_input(ctx["room_vol"], value=int(defaults["volume"]))
+            occupants = st.number_input(ctx["occupants"], value=int(defaults["occupants"]), step=1)
         with c_sub4:
-            ach = st.selectbox(ctx["tightness"], [0.2, 0.35, 0.5, 0.75, 1.2], index=2, help=ctx["tightness_help"])
-            shgc = st.slider(ctx["shgc_lbl"], min_value=0.20, max_value=0.85, value=0.40, step=0.05, help=ctx["shgc_help"])
+            init_ach_idx = [0.2, 0.35, 0.5, 0.75, 1.2].index(active_override["ach"]) if active_override and active_override["ach"] in [0.2, 0.35, 0.5, 0.75, 1.2] else 2
+            ach = st.selectbox(ctx["tightness"], [0.2, 0.35, 0.5, 0.75, 1.2], index=init_ach_idx, help=ctx["tightness_help"])
+            
+            init_shgc = active_override["shgc"] if active_override else 0.40
+            shgc = st.slider(ctx["shgc_lbl"], min_value=0.20, max_value=0.85, value=float(init_shgc), step=0.05, help=ctx["shgc_help"])
 
     st.markdown("---")
     
@@ -405,6 +525,11 @@ with tab1:
         duct_recommendation = get_duct_recommendation(result['cfm'], lang)
         st.info(f"{ctx['suggested_duct']}: {duct_recommendation}")
 
+        # Save to database ledger instantly
+        save_calculation(proj_name, data, result, lang)
+        st.toast(f"Calculations logged in historical ledger table successfully!", icon="💾")
+
+        # Export Config
         try:
             pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx)
             with open(pdf_file, "rb") as f:
