@@ -1,18 +1,19 @@
+import os
 import streamlit as st
 from fpdf import FPDF
 from datetime import datetime
 import pandas as pd
 import requests
-import os
 from supabase import create_client, Client
 
 # ==============================================================================
 # 0. CLIENT INITIALIZATION & SECURE ROUTING LAYER
 # ==============================================================================
-SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://your-project.supabase.co")
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "your-anon-key")
+# Defensively checks Render Environment Variables first, falls back to st.secrets
+SUPABASE_URL = os.environ.get("SUPABASE_URL") or st.secrets.get("SUPABASE_URL", "https://your-project.supabase.co")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or st.secrets.get("SUPABASE_KEY", "your-anon-key")
 
-# Core API initialization for data tracking
+# Core native API initialization for data tracking and RLS mapping
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def supabase_auth(email, password, action="login"):
@@ -44,7 +45,7 @@ def save_calculation(name, data, result, lang_choice, user_id):
         "area_roof": data['area_roof'], "u_roof": data['u_roof'], "volume": data['volume'], "ach": data['ach'],
         "occupants": data['occupants'], "shgc": data['shgc'], "safety_factor": data['safety_factor'],
         "total_btu_hr": result['total_btu_hr'], "tons": result.get('tons', 0.0), "cfm": result['cfm'],
-        "user_id": user_id  # Implicitly maps to auth.uid() inside postgres security policy
+        "user_id": user_id  -- Maps dynamically to auth.uid() inside postgres security policy
     }
     try:
         supabase.table("calculations").insert(payload).execute()
@@ -53,7 +54,7 @@ def save_calculation(name, data, result, lang_choice, user_id):
 
 def get_calculation_history(user_id):
     try:
-        # Pulls data securely, relying on RLS to safely isolate users on shared cloud table
+        # Pulls data securely, relying on RLS to safely isolate users on a shared table
         response = supabase.table("calculations").select("id, project_name, timestamp, mode").eq("user_id", user_id).order("id", desc=True).limit(50).execute()
         return [[row['id'], row['project_name'], row['timestamp'], row['mode']] for row in response.data]
     except:
@@ -239,6 +240,18 @@ def generate_pdf_report(data, result, mode, lang, ctx):
 # ==============================================================================
 # 3. ROUTING CONTROL & USER INTERFACE
 # ==============================================================================
+st.set_page_config(page_title="VetCool HVAC Portal", layout="wide")
+
+# UI Customization Styling
+st.markdown("""
+<style>
+    .stApp { background-color: #0E1117; color: #FFFFFF; }
+    .stButton>button { background-color: #E30613; color: white; font-weight: bold; border-radius: 6px; }
+    h1, h2, h3, label { color: #FFFFFF !important; }
+    .metric-card { background-color: #1E232A; padding: 20px; border-radius: 10px; border-left: 5px solid #E30613; margin-bottom: 15px; }
+</style>
+""", unsafe_allow_html=True)
+
 if "auth_user" not in st.session_state:
     st.session_state["auth_user"] = None
 
