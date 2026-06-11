@@ -58,7 +58,7 @@ def load_static_environmental_profiles():
             "tab_method": "Application Methodology",
             "method_title": "Operational Calculations & Assumptions",
             "method_body": "Advanced thermal load profile processing framework.",
-            "disclaimer": "Disclaimer: Quick field estimate sales framework.",
+            "disclaimer": "Disclaimer: Quick field estimate sales framework. Calculations are based on professional simplified engineering guidelines and provided for preliminary scoping and advisory purposes.",
             "pdf_title": "VETCOOL FIELDFLOW ESTIMATE REPORT",
             "pdf_scope": "Calculation Scope",
             "pdf_target": "Design Target Location",
@@ -113,7 +113,7 @@ def load_static_environmental_profiles():
             "tab_method": "Metodologia de Aplicacion",
             "method_title": "Calculos Operacionales y Supuestos",
             "method_body": "Estructura de procesamiento de perfiles de carga termica avanzada.",
-            "disclaimer": "Descargo de responsabilidad: Estimacion de campo simplificada.",
+            "disclaimer": "Descargo de responsabilidad: Estimacion de campo simplificada. Los calculos se basan en pautas de ingenieria profesionales simplificadas y se proporcionan para fines preliminares y de asesoramiento.",
             "pdf_title": "INFORME DE ESTIMACION VETCOOL FIELDFLOW",
             "pdf_scope": "Alcance del Calculo",
             "pdf_target": "Ubicacion de Diseno Objetivo",
@@ -239,18 +239,99 @@ def calculate_cooling_load(data):
     total_load = (total_sensible + (0.68 * cfm_infil * max(0, data['moisture_grains'] - 65)) + (data['occupants'] * 200)) * data['safety_factor']
     return {'total_btu_hr': round(total_load), 'tons': round(total_load / 12000, 2), 'cfm': round(total_sensible / (1.08 * 20))}
 
-def generate_pdf_report(data, result, mode, lang, ctx):
+def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, str(ctx["pdf_title"]), ln=True, align="C")
-    pdf.ln(10)
-    pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 8, f"Project: {data.get('location')} - Scope: {str(mode)}", ln=True)
-    if "Heating" in str(mode):
-        pdf.cell(0, 8, f"Total Capacity: {result.get('total_btu_hr'):,} BTU/hr", ln=True)
+    
+    # --- 1. PREMIUM HEADER SECTION WITH LOGO ---
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_path = os.path.join(current_dir, "vetcool_logo.png")
+    
+    if os.path.exists(logo_path):
+        # Places logo centered at the top, scaled to a clean 50mm width
+        pdf.image(logo_path, x=80, y=10, w=50)
+        pdf.ln(35) # Creates structural clearance below the logo image
     else:
-        pdf.cell(0, 8, f"Total Capacity: {result.get('total_btu_hr'):,} BTU/hr (~{result.get('tons')} Tons)", ln=True)
+        pdf.ln(10)
+        
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.cell(0, 10, str(ctx["pdf_title"]), ln=True, align="C")
+    
+    # Decorative accent divider line mimicking the app theme
+    pdf.set_draw_color(227, 6, 19) # Vetcool Red
+    pdf.set_linewidth(1)
+    pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
+    pdf.ln(8)
+    
+    # --- 2. METADATA BRIEF ---
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(100, 100, 100)
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+    pdf.cell(100, 6, f"Generated: {current_time}", ln=False)
+    pdf.cell(90, 6, f"Project Reference: {project_name_str}", ln=True, align="R")
+    pdf.cell(100, 6, f"Design Target: {data.get('location')}", ln=False)
+    pdf.cell(90, 6, f"Calculation Profile: {str(mode)}", ln=True, align="R")
+    pdf.ln(6)
+    
+    # --- 3. COMPLETE INPUT PARAMETERS READOUT ---
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 8, str(ctx["pdf_inputs"]), ln=True)
+    pdf.set_draw_color(200, 200, 200)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(4)
+    
+    pdf.set_font("Helvetica", "", 10)
+    # Double Column Layout for Envelope Metrics
+    pdf.cell(95, 6, f"Net Wall Area: {data['area_walls']:,} sq ft  (U-value: {data['u_walls']})", ln=False)
+    pdf.cell(95, 6, f"Indoor Target Temp: {data['t_indoor']} F", ln=True)
+    
+    pdf.cell(95, 6, f"Total Window Area: {data['area_windows']:,} sq ft  (U-value: {data['u_windows']})", ln=False)
+    pdf.cell(95, 6, f"Outdoor Design Temp: {data['t_outdoor']} F", ln=True)
+    
+    pdf.cell(95, 6, f"Ceiling/Roof Area: {data['area_roof']:,} sq ft  (U-value: {data['u_roof']})", ln=False)
+    pdf.cell(95, 6, f"Outdoor Moisture: {data['moisture_grains']} Grains", ln=True)
+    
+    pdf.cell(95, 6, f"Conditioned Space Volume: {data['volume']:,} cu ft", ln=False)
+    pdf.cell(95, 6, f"Envelope Air Tightness: {data['ach']} ACH", ln=True)
+    
+    pdf.cell(95, 6, f"Continuous Occupants Count: {data['occupants']}", ln=False)
+    pdf.cell(95, 6, f"Solar Heat Coefficient (SHGC): {data['shgc']}", ln=True)
+    
+    pdf.cell(95, 6, f"Safety Margin Cushion Applied: {int(round((data['safety_factor'] - 1) * 100))}%", ln=True)
+    pdf.ln(8)
+    
+    # --- 4. CALCULATION RESULTS ENGINE READOUT ---
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, str(ctx["pdf_results"]), ln=True)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(4)
+    
+    # Highlight Box for Core Capacity
+    pdf.set_fill_color(245, 247, 250)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_text_color(227, 6, 19) # Highlight Red
+    
+    if "Heating" in str(mode):
+        pdf.cell(0, 12, f"  TOTAL ESTIMATED HEATING CAPACITY: {result['total_btu_hr']:,} BTU/hr", ln=True, fill=True)
+    else:
+        pdf.cell(0, 12, f"  TOTAL ESTIMATED COOLING CAPACITY: {result['total_btu_hr']:,} BTU/hr  (~{result.get('tons')} Tons)", ln=True, fill=True)
+        
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(95, 8, f"Required System Airflow: {result['cfm']:,} CFM", ln=False)
+    
+    # Pulls localized duct recommendation directly into the PDF layout
+    duct_size = get_duct_recommendation(result['cfm'], lang)
+    pdf.cell(95, 8, f"{ctx['pdf_duct']}: {duct_size}", ln=True)
+    
+    # --- 5. CORPORATE FOOTER DISCLAIMER ---
+    pdf.ln(15)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(120, 120, 120)
+    pdf.multi_cell(0, 4, str(ctx["disclaimer"]))
+    
     filename = f"vetcool_report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
     pdf.output(filename)
     return filename
@@ -264,7 +345,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# BRAND SPECIFIC PREMIUM CSS OVERRIDES (Matches the Mock-up Design exactly)
+# BRAND SPECIFIC PREMIUM CSS OVERRIDES
 st.markdown("""
 <style>
     /* Dark Slate Canvas Base */
@@ -397,84 +478,4 @@ else:
         
         init_safety = int(round((active_override["safety_factor"] - 1) * 100)) if active_override else 10
         safety_slider = st.slider(ctx["safety_margin"], min_value=0, max_value=30, value=init_safety, step=5)
-        safety_factor = 1.0 + (safety_slider / 100)
-
-    # Core Metric Defaults Processing Logic
-    if preset == "Small House (1200 sq ft)": defaults = {"walls": 800, "windows": 150, "roof": 1200, "volume": 9600, "occupants": 3}
-    elif preset == "Medium House (2000 sq ft)": defaults = {"walls": 1400, "windows": 250, "roof": 2000, "volume": 16000, "occupants": 5}
-    elif preset == "Large House (3000 sq ft)": defaults = {"walls": 2000, "windows": 400, "roof": 3000, "volume": 24000, "occupants": 7}
-    elif preset == "Small Office": defaults = {"walls": 1800, "windows": 300, "roof": 1800, "volume": 14400, "occupants": 12}
-    elif preset == "Restaurant": defaults = {"walls": 1500, "windows": 250, "roof": 1500, "volume": 12000, "occupants": 25}
-    else: defaults = {"walls": 1200, "windows": 200, "roof": 1500, "volume": 9000, "occupants": 4}
-
-    if active_override:
-        defaults = {"walls": active_override["area_walls"], "windows": active_override["area_windows"], "roof": active_override["area_roof"], "volume": active_override["volume"], "occupants": active_override["occupants"]}
-
-    tab1, tab2 = st.tabs([ctx["tab_compute"], ctx["tab_method"]])
-
-    with tab1:
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            init_mode_idx = 0 if (active_override and "Heating" in str(active_override["mode"])) else 1
-            mode_label = st.radio(ctx["calc_path"], [ctx["heat_load"], ctx["cool_load"]], index=init_mode_idx)
-            mode = "Cooling Load" if mode_label == ctx["cool_load"] else "Heating Load"
-            t_indoor = st.number_input(ctx["target_indoor"], value=float(active_override["t_indoor"] if active_override else (72 if mode == "Heating Load" else 75)))
-            
-            if location == "Custom (Manual Override)":
-                t_outdoor = st.number_input(ctx["design_outdoor"], value=float(active_override["t_outdoor"] if active_override else 95))
-                moisture_grains = st.number_input(ctx["humidity_grains"], value=float(active_override["moisture_grains"] if active_override else 100))
-                cltd_wall, cltd_roof = 25, 40
-            else:
-                t_outdoor = geo_defaults["cool_outdoor"] if mode == "Cooling Load" else geo_defaults["heat_outdoor"]
-                moisture_grains = geo_defaults["moisture_grains"]
-                cltd_wall, cltd_roof = geo_defaults["cltd_wall"], geo_defaults["cltd_roof"]
-                st.caption(f"{ctx['weather_profile_msg']}: **{t_outdoor} F**")
-
-        with col2:
-            st.subheader(ctx["building_metrics"])
-            c_sub1, c_sub2 = st.columns(2)
-            with c_sub1:
-                area_walls = st.number_input(ctx["net_wall"], value=int(defaults["walls"]))
-                area_windows = st.number_input(ctx["tot_window"], value=int(defaults["windows"]))
-                area_roof = st.number_input(ctx["roof_area"], value=int(defaults["roof"]))
-            with c_sub2:
-                u_walls = st.selectbox(ctx["wall_ins"], [0.04, 0.06, 0.08, 0.12, 0.25], index=2)
-                u_windows = st.selectbox(ctx["window_glaze"], [0.28, 0.35, 0.48, 0.70], index=1)
-                u_roof = st.selectbox(ctx["roof_ins"], [0.03, 0.05, 0.08, 0.15], index=1)
-
-            st.subheader(ctx["internal_vars"])
-            c_sub3, c_sub4 = st.columns(2)
-            with c_sub3:
-                volume = st.number_input(ctx["room_vol"], value=int(defaults["volume"]))
-                occupants = st.number_input(ctx["occupants"], value=int(defaults["occupants"]), step=1)
-            with c_sub4:
-                ach = st.selectbox(ctx["tightness"], [0.2, 0.35, 0.5, 0.75, 1.2], index=2)
-                shgc = st.slider(ctx["shgc_lbl"], min_value=0.20, max_value=0.85, value=0.40, step=0.05)
-
-        st.markdown("---")
-        
-        if st.button(ctx["btn_calc"], type="primary", use_container_width=True):
-            data = {
-                'location': location, 't_indoor': t_indoor, 't_outdoor': t_outdoor, 'moisture_grains': moisture_grains,
-                'cltd_wall': cltd_wall, 'cltd_roof': cltd_roof, 'area_walls': area_walls, 'u_walls': u_walls,
-                'area_windows': area_windows, 'u_windows': u_windows, 'area_roof': area_roof, 'u_roof': u_roof,
-                'volume': volume, 'ach': ach, 'occupants': occupants, 'shgc': shgc, 'safety_factor': safety_factor, 'mode': mode_label
-            }
-
-            if mode == "Heating Load":
-                result = calculate_heating_load(data)
-                st.markdown(f'<div class="metric-card"><h3>{ctx["heat_capacity"]}</h3><h2>{result["total_btu_hr"]:,} BTU/hr</h2><p>{ctx["circ_target"]}: <b>{result["cfm"]} CFM</b></p></div>', unsafe_allow_html=True)
-            else:
-                result = calculate_cooling_load(data)
-                st.markdown(f'<div class="metric-card"><h3>{ctx["cool_capacity"]}</h3><h2>{result["total_btu_hr"]:,} BTU/hr (~{result["tons"]} {ctx["nominal_tons"]})</h2><p>{ctx["req_airflow"]}: <b>{result["cfm"]} CFM</b></p></div>', unsafe_allow_html=True)
-
-            save_calculation(proj_name, data, result, lang, current_user["id"])
-            st.toast("Estimate synchronized to Vetcool FieldFlow Cloud!", icon="💾")
-
-            try:
-                pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx)
-                with open(pdf_file, "rb") as f:
-                    st.download_button(ctx["btn_pdf"], f, file_name=pdf_file, mime="application/pdf")
-                os.remove(pdf_file)
-            except Exception as e:
-                st.error(f"{ctx['pdf_fault']}: {str(e)}")
+        safety_factor = 1.0 + (
