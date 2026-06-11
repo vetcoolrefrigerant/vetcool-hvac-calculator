@@ -3,13 +3,9 @@ from fpdf import FPDF
 from datetime import datetime
 import os
 
-# ========================= PWA + FAVICON =========================
-st.set_page_config(
-    page_title="VetCool HVAC Calculator",
-    page_icon="vetcool_logo.png",
-    layout="centered"
-)
+st.set_page_config(page_title="VetCool HVAC Calculator", page_icon="vetcool_logo.png", layout="centered")
 
+# PWA Support
 st.markdown("""
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#E30613">
@@ -35,7 +31,7 @@ st.title("VetCool HVAC Load Calculator")
 st.markdown("**Professional Multi-Room Heating & Cooling Estimator**")
 st.caption("Installable App • Manual J Style")
 
-# Multi-Room Session State
+# Session State for Multi-Room
 if 'rooms' not in st.session_state:
     st.session_state.rooms = []
 
@@ -69,7 +65,7 @@ with tab1:
             })
             st.success(f"✅ Added: {room_name}")
 
-    # Show Added Rooms + Grand Total
+    # Display Rooms & Grand Total
     if st.session_state.rooms:
         st.subheader("Added Rooms")
         total_btu = 0
@@ -88,12 +84,6 @@ with tab1:
         if st.button("Clear All Rooms"):
             st.session_state.rooms = []
             st.rerun()
-
-        # Share Button
-        if st.button("🔗 Share Results"):
-            share_text = f"VetCool Multi-Room Calculation\nTotal: {total_btu} BTU/hr\nRooms: {len(st.session_state.rooms)}\nLink: https://your-app.streamlit.app"
-            st.code(share_text)
-            st.success("Copy the text above!")
 
 # ========================= FUNCTIONS =========================
 def calculate_heating_load(data):
