@@ -478,4 +478,84 @@ else:
         
         init_safety = int(round((active_override["safety_factor"] - 1) * 100)) if active_override else 10
         safety_slider = st.slider(ctx["safety_margin"], min_value=0, max_value=30, value=init_safety, step=5)
-        safety_factor = 1.0 + (
+        safety_factor = 1.0 + (safety_slider / 100)
+
+    # Core Metric Defaults Processing Logic
+    if preset == "Small House (1200 sq ft)": defaults = {"walls": 800, "windows": 150, "roof": 1200, "volume": 9600, "occupants": 3}
+    elif preset == "Medium House (2000 sq ft)": defaults = {"walls": 1400, "windows": 250, "roof": 2000, "volume": 16000, "occupants": 5}
+    elif preset == "Large House (3000 sq ft)": defaults = {"walls": 2000, "windows": 400, "roof": 3000, "volume": 24000, "occupants": 7}
+    elif preset == "Small Office": defaults = {"walls": 1800, "windows": 300, "roof": 1800, "volume": 14400, "occupants": 12}
+    elif preset == "Restaurant": defaults = {"walls": 1500, "windows": 250, "roof": 1500, "volume": 12000, "occupants": 25}
+    else: defaults = {"walls": 1200, "windows": 200, "roof": 1500, "volume": 9000, "occupants": 4}
+
+    if active_override:
+        defaults = {"walls": active_override["area_walls"], "windows": active_override["area_windows"], "roof": active_override["area_roof"], "volume": active_override["volume"], "occupants": active_override["occupants"]}
+
+    tab1, tab2 = st.tabs([ctx["tab_compute"], ctx["tab_method"]])
+
+    with tab1:
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            init_mode_idx = 0 if (active_override and "Heating" in str(active_override["mode"])) else 1
+            mode_label = st.radio(ctx["calc_path"], [ctx["heat_load"], ctx["cool_load"]], index=init_mode_idx)
+            mode = "Cooling Load" if mode_label == ctx["cool_load"] else "Heating Load"
+            t_indoor = st.number_input(ctx["target_indoor"], value=float(active_override["t_indoor"] if active_override else (72 if mode == "Heating Load" else 75)))
+            
+            if location == "Custom (Manual Override)":
+                t_outdoor = st.number_input(ctx["design_outdoor"], value=float(active_override["t_outdoor"] if active_override else 95))
+                moisture_grains = st.number_input(ctx["humidity_grains"], value=float(active_override["moisture_grains"] if active_override else 100))
+                cltd_wall, cltd_roof = 25, 40
+            else:
+                t_outdoor = geo_defaults["cool_outdoor"] if mode == "Cooling Load" else geo_defaults["heat_outdoor"]
+                moisture_grains = geo_defaults["moisture_grains"]
+                cltd_wall, cltd_roof = geo_defaults["cltd_wall"], geo_defaults["cltd_roof"]
+                st.caption(f"{ctx['weather_profile_msg']}: **{t_outdoor} F**")
+
+        with col2:
+            st.subheader(ctx["building_metrics"])
+            c_sub1, c_sub2 = st.columns(2)
+            with c_sub1:
+                area_walls = st.number_input(ctx["net_wall"], value=int(defaults["walls"]))
+                area_windows = st.number_input(ctx["tot_window"], value=int(defaults["windows"]))
+                area_roof = st.number_input(ctx["roof_area"], value=int(defaults["roof"]))
+            with c_sub2:
+                u_walls = st.selectbox(ctx["wall_ins"], [0.04, 0.06, 0.08, 0.12, 0.25], index=2)
+                u_windows = st.selectbox(ctx["window_glaze"], [0.28, 0.35, 0.48, 0.70], index=1)
+                u_roof = st.selectbox(ctx["roof_ins"], [0.03, 0.05, 0.08, 0.15], index=1)
+
+            st.subheader(ctx["internal_vars"])
+            c_sub3, c_sub4 = st.columns(2)
+            with c_sub3:
+                volume = st.number_input(ctx["room_vol"], value=int(defaults["volume"]))
+                occupants = st.number_input(ctx["occupants"], value=int(defaults["occupants"]), step=1)
+            with c_sub4:
+                ach = st.selectbox(ctx["tightness"], [0.2, 0.35, 0.5, 0.75, 1.2], index=2)
+                shgc = st.slider(ctx["shgc_lbl"], min_value=0.20, max_value=0.85, value=0.40, step=0.05)
+
+        st.markdown("---")
+        
+        if st.button(ctx["btn_calc"], type="primary", use_container_width=True):
+            data = {
+                'location': location, 't_indoor': t_indoor, 't_outdoor': t_outdoor, 'moisture_grains': moisture_grains,
+                'cltd_wall': cltd_wall, 'cltd_roof': cltd_roof, 'area_walls': area_walls, 'u_walls': u_walls,
+                'area_windows': area_windows, 'u_windows': u_windows, 'area_roof': area_roof, 'u_roof': u_roof,
+                'volume': volume, 'ach': ach, 'occupants': occupants, 'shgc': shgc, 'safety_factor': safety_factor, 'mode': mode_label
+            }
+
+            if mode == "Heating Load":
+                result = calculate_heating_load(data)
+                st.markdown(f'<div class="metric-card"><h3>{ctx["heat_capacity"]}</h3><h2>{result["total_btu_hr"]:,} BTU/hr</h2><p>{ctx["circ_target"]}: <b>{result["cfm"]} CFM</b></p></div>', unsafe_allow_html=True)
+            else:
+                result = calculate_cooling_load(data)
+                st.markdown(f'<div class="metric-card"><h3>{ctx["cool_capacity"]}</h3><h2>{result["total_btu_hr"]:,} BTU/hr (~{result["tons"]} {ctx["nominal_tons"]})</h2><p>{ctx["req_airflow"]}: <b>{result["cfm"]} CFM</b></p></div>', unsafe_allow_html=True)
+
+            save_calculation(proj_name, data, result, lang, current_user["id"])
+            st.toast("Estimate synchronized to Vetcool FieldFlow Cloud!", icon="💾")
+
+            try:
+                pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx, proj_name)
+                with open(pdf_file, "rb") as f:
+                    st.download_button(ctx["btn_pdf"], f, file_name=pdf_file, mime="application/pdf")
+                os.remove(pdf_file)
+            except Exception as e:
+                st.error(f"{ctx['pdf_fault']}: {str(e)}")
