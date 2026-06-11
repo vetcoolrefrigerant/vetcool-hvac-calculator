@@ -45,7 +45,7 @@ def save_calculation(name, data, result, lang_choice, user_id):
         "area_roof": data['area_roof'], "u_roof": data['u_roof'], "volume": data['volume'], "ach": data['ach'],
         "occupants": data['occupants'], "shgc": data['shgc'], "safety_factor": data['safety_factor'],
         "total_btu_hr": result['total_btu_hr'], "tons": result.get('tons', 0.0), "cfm": result['cfm'],
-        "user_id": user_id  -- Maps dynamically to auth.uid() inside postgres security policy
+        "user_id": user_id  # Maps dynamically to auth.uid() inside postgres security policy
     }
     try:
         supabase.table("calculations").insert(payload).execute()
