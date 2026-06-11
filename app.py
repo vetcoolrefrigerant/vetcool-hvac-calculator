@@ -3,7 +3,7 @@ from fpdf import FPDF
 from datetime import datetime
 import os
 
-# ========================= FUNCTIONS (MUST BE FIRST) =========================
+# ========================= FUNCTIONS (DEFINED FIRST) =========================
 def calculate_heating_load(data):
     q_walls = data['u_walls'] * data['area_walls'] * (data['t_indoor'] - data['t_outdoor'])
     q_windows = data['u_windows'] * data['area_windows'] * (data['t_indoor'] - data['t_outdoor'])
@@ -73,7 +73,7 @@ def generate_pdf_report(data, result, mode):
     pdf.output(filename)
     return filename
 
-# ========================= STREAMLIT APP =========================
+# ========================= MAIN APP =========================
 st.set_page_config(page_title="VetCool HVAC Calculator", page_icon="🔧", layout="centered")
 
 st.markdown("""
