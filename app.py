@@ -559,3 +559,4 @@ else:
                 os.remove(pdf_file)
             except Exception as e:
                 st.error(f"{ctx['pdf_fault']}: {str(e)}")
+
