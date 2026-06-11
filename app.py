@@ -17,27 +17,30 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or st.secrets.get("SUPABASE_KEY", 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def supabase_auth(email, password, action="login"):
-    """Handles secure cloud signup and login via Supabase REST API"""
-    url = f"{SUPABASE_URL}/auth/v1/signup" if action == "signup" else f"{SUPABASE_URL}/auth/v1/token?grant_type=password"
-    headers = {"apiKey": SUPABASE_KEY, "Content-Type": "application/json"}
-    payload = {"email": email, "password": password}
-    
+    """Handles secure cloud signup and login natively via the Supabase client"""
     try:
-        response = requests.post(url, json=payload, headers=headers)
-        res_data = response.json()
-        if response.status_code in [200, 201]:
-            # === CRITICAL FIX: Upgrade the global client with the user's secure access token ===
-            if action == "login" and 'access_token' in res_data:
-                supabase.postgrest.auth(res_data['access_token'])
-            
-            return {"success": True, "user_id": res_data['user']['id'], "email": res_data['user']['email']}
+        if action == "signup":
+            res = supabase.auth.sign_up({"email": email, "password": password})
+            return {"success": True, "user_id": res.user.id, "email": res.user.email}
         else:
-            return {"success": False, "error": res_data.get("error_description", res_data.get("msg", "Auth Failed"))}
+            # Native sign-in automatically binds the user session and token to the client
+            res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+            return {"success": True, "user_id": res.user.id, "email": res.user.email}
+            
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        # Strip internal wrapper details to expose the raw error text clearly
+        err_msg = str(e)
+        if "error_description" in err_msg:
+            try:
+                import json
+                err_dict = json.loads(err_msg.replace("'", '"'))
+                err_msg = err_dict.get("error_description", err_msg)
+            except:
+                pass
+        return {"success": False, "error": err_msg}
 
 # ==============================================================================
-# 1. LIVE SECURE DATA TRANSACTION LAYER (RLS COMPLIANT)
+# 1. LIVE SECURE DATA TRANSACTION LAYER (DIRECT API FALLBACK)
 # ==============================================================================
 def save_calculation(name, data, result, lang_choice, user_id):
     payload = {
@@ -49,26 +52,49 @@ def save_calculation(name, data, result, lang_choice, user_id):
         "area_roof": data['area_roof'], "u_roof": data['u_roof'], "volume": data['volume'], "ach": data['ach'],
         "occupants": data['occupants'], "shgc": data['shgc'], "safety_factor": data['safety_factor'],
         "total_btu_hr": result['total_btu_hr'], "tons": result.get('tons', 0.0), "cfm": result['cfm'],
-        "user_id": user_id  # Maps dynamically to auth.uid() inside postgres security policy
+        "user_id": user_id  
     }
     try:
-        supabase.table("calculations").insert(payload).execute()
+        # Use a clean, isolated requests call to post the data directly to Postgrest
+        url = f"{SUPABASE_URL}/rest/v1/calculations"
+        headers = {
+            "apiKey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}", # Uses the configured public key context to route safely
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code not in [200, 201]:
+            st.error(f"Cloud Save Interrupted: {response.text}")
     except Exception as e:
         st.error(f"Cloud Save Interrupted: {str(e)}")
 
 def get_calculation_history(user_id):
     try:
-        # Pulls data securely, relying on RLS to safely isolate users on a shared table
-        response = supabase.table("calculations").select("id, project_name, timestamp, mode").eq("user_id", user_id).order("id", desc=True).limit(50).execute()
-        return [[row['id'], row['project_name'], row['timestamp'], row['mode']] for row in response.data]
+        # Pulls historical data via direct REST API to avoid stream-state disconnection drops
+        url = f"{SUPABASE_URL}/rest/v1/calculations?user_id=eq.{user_id}&order=id.desc&limit=50"
+        headers = {
+            "apiKey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            return [[row['id'], row['project_name'], row['timestamp'], row['mode']] for row in data]
     except:
-        return []
+        pass
+    return []
 
 def load_calculation_by_id(calc_id, user_id):
     try:
-        response = supabase.table("calculations").select("*").eq("id", calc_id).eq("user_id", user_id).execute()
-        if response.data:
-            return response.data[0]
+        url = f"{SUPABASE_URL}/rest/v1/calculations?id=eq.{calc_id}&user_id=eq.{user_id}"
+        headers = {
+            "apiKey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200 and response.json():
+            return response.json()[0]
     except:
         pass
     return None
@@ -246,7 +272,6 @@ def generate_pdf_report(data, result, mode, lang, ctx):
 # ==============================================================================
 st.set_page_config(page_title="VetCool HVAC Portal", layout="wide")
 
-# UI Customization Styling
 st.markdown("""
 <style>
     .stApp { background-color: #0E1117; color: #FFFFFF; }
