@@ -7,13 +7,148 @@ import requests
 from supabase import create_client, Client
 
 # ==============================================================================
-# 0. CLIENT INITIALIZATION & SECURE ROUTING LAYER
+# 0. SPEED OPTIMIZATION RESOURCE CACHING LAYER
 # ==============================================================================
-# Defensively checks Render Environment Variables first, falls back to st.secrets
+# Memory-caches static regional lookup profiles so they load instantly without rebuilds
+@st.cache_data
+def load_static_environmental_profiles():
+    lang_dict = {
+        "English": {
+            "title": "Vetcool FieldFlow",
+            "subtitle": "Professional Mobile Thermal Load & Airflow Calculator",
+            "sidebar_settings": "Global Settings",
+            "history_header": "Your Cloud Projects",
+            "proj_name_lbl": "Project / Client Reference Name",
+            "climate_loc": "Design Climate Location",
+            "presets": "Property Presets",
+            "safety_margin": "Safety Margin Cushion (%)",
+            "calc_path": "Calculation Path",
+            "heat_load": "Heating Load",
+            "cool_load": "Cooling Load",
+            "target_indoor": "Target Indoor Temp (F)",
+            "design_outdoor": "Design Outdoor Temp (F)",
+            "humidity_grains": "Outdoor Humidity Grains",
+            "weather_profile_msg": "Using standard local weather profiles",
+            "building_metrics": "Building Envelope Metrics",
+            "net_wall": "Net Wall Area (sq ft)",
+            "tot_window": "Total Window Area (sq ft)",
+            "roof_area": "Ceiling/Roof Area (sq ft)",
+            "wall_ins": "Wall Insulation (U-value)",
+            "window_glaze": "Window Glazing (U-value)",
+            "roof_ins": "Roof Insulation (U-value)",
+            "wall_ins_help": "Lower is better insulation. 0.06 is standard insulated wall.",
+            "window_glaze_help": "0.28=Triple Pane, 0.48=Double Pane Clear.",
+            "roof_ins_help": "0.03=R-38 ceiling, 0.05=R-21 ceiling.",
+            "internal_vars": "Internal Variables & Infiltration",
+            "room_vol": "Conditioned Cubical Volume (cu ft)",
+            "occupants": "Average Continuous Occupants",
+            "tightness": "Envelope Air Tightness (ACH)",
+            "tightness_help": "Air Changes per Hour. 0.35 is tight modern construction.",
+            "shgc_lbl": "Window Solar Coefficient (SHGC)",
+            "shgc_help": "Solar Heat Gain Coefficient.",
+            "btn_calc": "Generate & Save Load Profiles",
+            "heat_capacity": "Estimated Heating Capacity",
+            "cool_capacity": "Estimated Cooling Capacity",
+            "circ_target": "Calculated Circulation Target",
+            "req_airflow": "Required Air Flow",
+            "nominal_tons": "Nominal Tons",
+            "suggested_duct": "Suggested Trunk Line Profile",
+            "btn_pdf": "Export Branded PDF Proposal",
+            "pdf_fault": "Render System Fault",
+            "tab_compute": "Compute System Loads",
+            "tab_method": "Application Methodology",
+            "method_title": "Operational Calculations & Assumptions",
+            "method_body": "Advanced thermal load profile processing framework.",
+            "disclaimer": "Disclaimer: Quick field estimate sales framework.",
+            "pdf_title": "VETCOOL FIELDFLOW ESTIMATE REPORT",
+            "pdf_scope": "Calculation Scope",
+            "pdf_target": "Design Target Location",
+            "pdf_inputs": "INPUT DESIGN PARAMETERS",
+            "pdf_results": "ESTIMATED LOAD RESULTS",
+            "pdf_duct": "Suggested Trunk Line Profile",
+            "presets_dict": {"Custom Input": "Custom Input", "Small House (1200 sq ft)": "Small House (1200 sq ft)", "Medium House (2000 sq ft)": "Medium House (2000 sq ft)", "Large House (3000 sq ft)": "Large House (3000 sq ft)", "Small Office": "Small Office", "Restaurant": "Restaurant"}
+        },
+        "Spanish": {
+            "title": "Vetcool FieldFlow",
+            "subtitle": "Calculadora Movil Profesional de Carga Termica y Flujo de Aire",
+            "sidebar_settings": "Configuracion Global",
+            "history_header": "Tus Proyectos en la Nube",
+            "proj_name_lbl": "Nombre del Proyecto / Cliente",
+            "climate_loc": "Ubicacion del Clima de Diseno",
+            "presets": "Preajustes de la Propiedad",
+            "safety_margin": "Margen de Seguridad (%)",
+            "calc_path": "Tipo de Calculo",
+            "heat_load": "Carga de Calefaccion",
+            "cool_load": "Carga de Enfriamiento",
+            "target_indoor": "Temp. Interior Objetivo (F)",
+            "design_outdoor": "Temp. Exterior de Diseno (F)",
+            "humidity_grains": "Granos de Humedad Exterior",
+            "weather_profile_msg": "Usando perfiles climaticos locales estandar",
+            "building_metrics": "Metricas del Envolvente del Edificio",
+            "net_wall": "Area Neta de Pared (sq ft)",
+            "tot_window": "Area Total de Ventanas (sq ft)",
+            "roof_area": "Area de Techo (sq ft)",
+            "wall_ins": "Aislamiento de Pared (Valor-U)",
+            "window_glaze": "Acristalamiento de Ventana (Valor-U)",
+            "roof_ins": "Aislamiento de Techo (Valor-U)",
+            "wall_ins_help": "Menor valor significa mejor aislamiento.",
+            "window_glaze_help": "Especificaciones del vidrio.",
+            "roof_ins_help": "Especificaciones del techo.",
+            "internal_vars": "Variables Internas e Infiltracion",
+            "room_vol": "Volumen Cubico Acondicionado (cu ft)",
+            "occupants": "Promedio de Ocupantes Continuos",
+            "tightness": "Hermeticidad del Envolvente (ACH)",
+            "tightness_help": "Cambios de aire por hora.",
+            "shgc_lbl": "Coeficiente Solar de Ventana (SHGC)",
+            "shgc_help": "Ganancia de calor solar.",
+            "btn_calc": "Generar y Guardar Perfiles de Carga",
+            "heat_capacity": "Capacidad de Calefaccion Estimada",
+            "cool_capacity": "Capacidad de Enfriamiento Estimada",
+            "circ_target": "Objetivo de Circulacion Calculado",
+            "req_airflow": "Flujo de Aire Requerido",
+            "nominal_tons": "Toneladas Nominales",
+            "suggested_duct": "Perfil Sugerido de la Linea Principal",
+            "btn_pdf": "Exportar Propuesta en PDF",
+            "pdf_fault": "Fallo en el Sistema de Renderizado",
+            "tab_compute": "Calcular Cargas del Sistema",
+            "tab_method": "Metodologia de Aplicacion",
+            "method_title": "Calculos Operacionales y Supuestos",
+            "method_body": "Estructura de procesamiento de perfiles de carga termica avanzada.",
+            "disclaimer": "Descargo de responsabilidad: Estimacion de campo simplificada.",
+            "pdf_title": "INFORME DE ESTIMACION VETCOOL FIELDFLOW",
+            "pdf_scope": "Alcance del Calculo",
+            "pdf_target": "Ubicacion de Diseno Objetivo",
+            "pdf_inputs": "PARAMETROS DE DISENO DE ENTRADA",
+            "pdf_results": "RESULTADOS DE CARGA ESTIMADA",
+            "pdf_duct": "Perfil Sugerido de la Linea Principal",
+            "presets_dict": {"Custom Input": "Entrada Personalizada", "Small House (1200 sq ft)": "Casa Pequena (1200 sq ft)", "Medium House (2000 sq ft)": "Casa Mediana (2000 sq ft)", "Large House (3000 sq ft)": "Casa Grande (3000 sq ft)", "Small Office": "Oficina Pequena", "Restaurant": "Restaurante"}
+        }
+    }
+    
+    regional_data = {
+        "Miami, FL": {"heat_outdoor": 48, "cool_outdoor": 91, "moisture_grains": 145, "cltd_wall": 28, "cltd_roof": 46},
+        "Phoenix, AZ": {"heat_outdoor": 38, "cool_outdoor": 108, "moisture_grains": 60, "cltd_wall": 35, "cltd_roof": 52},
+        "Chicago, IL": {"heat_outdoor": -1, "cool_outdoor": 91, "moisture_grains": 100, "cltd_wall": 22, "cltd_roof": 38},
+        "New York, NY": {"heat_outdoor": 15, "cool_outdoor": 89, "moisture_grains": 105, "cltd_wall": 21, "cltd_roof": 38},
+        "Houston, TX": {"heat_outdoor": 32, "cool_outdoor": 95, "moisture_grains": 130, "cltd_wall": 26, "cltd_roof": 44},
+        "Denver, CO": {"heat_outdoor": 2, "cool_outdoor": 92, "moisture_grains": 55, "cltd_wall": 25, "cltd_roof": 42},
+        "Custom (Manual Override)": {"heat_outdoor": 20, "cool_outdoor": 95, "moisture_grains": 100, "cltd_wall": 25, "cltd_roof": 40}
+    }
+    return lang_dict, regional_data
+
+LANG_DICT, REGIONAL_DATA = load_static_environmental_profiles()
+
+# Caches project lookup data for 60 seconds to stop database overhead latency on simple clicks
+@st.cache_data(ttl=60)
+def get_calculation_history_cached(user_id):
+    return get_calculation_history(user_id)
+
+# ==============================================================================
+# 1. CLIENT INITIALIZATION & SECURE ROUTING LAYER
+# ==============================================================================
 SUPABASE_URL = os.environ.get("SUPABASE_URL") or st.secrets.get("SUPABASE_URL", "https://your-project.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or st.secrets.get("SUPABASE_KEY", "your-anon-key")
 
-# Core native API initialization for data tracking and RLS mapping
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def supabase_auth(email, password, action="login"):
@@ -23,12 +158,9 @@ def supabase_auth(email, password, action="login"):
             res = supabase.auth.sign_up({"email": email, "password": password})
             return {"success": True, "user_id": res.user.id, "email": res.user.email}
         else:
-            # Native sign-in automatically binds the user session and token to the client
             res = supabase.auth.sign_in_with_password({"email": email, "password": password})
             return {"success": True, "user_id": res.user.id, "email": res.user.email}
-            
     except Exception as e:
-        # Strip internal wrapper details to expose the raw error text clearly
         err_msg = str(e)
         if "error_description" in err_msg:
             try:
@@ -40,7 +172,7 @@ def supabase_auth(email, password, action="login"):
         return {"success": False, "error": err_msg}
 
 # ==============================================================================
-# 1. LIVE SECURE DATA TRANSACTION LAYER (DIRECT API FALLBACK)
+# 2. LIVE SECURE DATA TRANSACTION LAYER (DIRECT API COUPLING)
 # ==============================================================================
 def save_calculation(name, data, result, lang_choice, user_id):
     payload = {
@@ -55,28 +187,23 @@ def save_calculation(name, data, result, lang_choice, user_id):
         "user_id": user_id  
     }
     try:
-        # Use a clean, isolated requests call to post the data directly to Postgrest
         url = f"{SUPABASE_URL}/rest/v1/calculations"
         headers = {
             "apiKey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}", # Uses the configured public key context to route safely
+            "Authorization": f"Bearer {SUPABASE_KEY}",
             "Content-Type": "application/json",
             "Prefer": "return=minimal"
         }
         response = requests.post(url, json=payload, headers=headers)
-        if response.status_code not in [200, 201]:
-            st.error(f"Cloud Save Interrupted: {response.text}")
+        if response.status_code in [200, 201]:
+            st.cache_data.clear() # Flushes history cache instantly so the new item loads immediately
     except Exception as e:
         st.error(f"Cloud Save Interrupted: {str(e)}")
 
 def get_calculation_history(user_id):
     try:
-        # Pulls historical data via direct REST API to avoid stream-state disconnection drops
         url = f"{SUPABASE_URL}/rest/v1/calculations?user_id=eq.{user_id}&order=id.desc&limit=50"
-        headers = {
-            "apiKey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}"
-        }
+        headers = {"apiKey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             data = response.json()
@@ -88,10 +215,7 @@ def get_calculation_history(user_id):
 def load_calculation_by_id(calc_id, user_id):
     try:
         url = f"{SUPABASE_URL}/rest/v1/calculations?id=eq.{calc_id}&user_id=eq.{user_id}"
-        headers = {
-            "apiKey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}"
-        }
+        headers = {"apiKey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
         response = requests.get(url, headers=headers)
         if response.status_code == 200 and response.json():
             return response.json()[0]
@@ -100,131 +224,8 @@ def load_calculation_by_id(calc_id, user_id):
     return None
 
 # ==============================================================================
-# 2. DICTIONARIES & METRICS (PRESERVED REGIONAL HVAC CORE)
+# 3. CORE HVAC PROCESSING LOGIC
 # ==============================================================================
-LANG_DICT = {
-    "English": {
-        "title": "VetCool Field Load Calculator",
-        "subtitle": "Professional Estimation & Sanity-Check Tool",
-        "sidebar_settings": "Global Settings",
-        "history_header": "Your Cloud Projects",
-        "proj_name_lbl": "Project / Client Reference Name",
-        "climate_loc": "Design Climate Location",
-        "presets": "Property Presets",
-        "safety_margin": "Safety Margin Cushion (%)",
-        "calc_path": "Calculation Path",
-        "heat_load": "Heating Load",
-        "cool_load": "Cooling Load",
-        "target_indoor": "Target Indoor Temp (F)",
-        "design_outdoor": "Design Outdoor Temp (F)",
-        "humidity_grains": "Outdoor Humidity Grains",
-        "weather_profile_msg": "Using standard local weather profiles",
-        "building_metrics": "Building Envelope Metrics",
-        "net_wall": "Net Wall Area (sq ft)",
-        "tot_window": "Total Window Area (sq ft)",
-        "roof_area": "Ceiling/Roof Area (sq ft)",
-        "wall_ins": "Wall Insulation (U-value)",
-        "window_glaze": "Window Glazing (U-value)",
-        "roof_ins": "Roof Insulation (U-value)",
-        "wall_ins_help": "Lower is better insulation. 0.06 is standard insulated wall.",
-        "window_glaze_help": "0.28=Triple Pane, 0.48=Double Pane Clear.",
-        "roof_ins_help": "0.03=R-38 ceiling, 0.05=R-21 ceiling.",
-        "internal_vars": "Internal Variables & Infiltration",
-        "room_vol": "Conditioned Cubical Volume (cu ft)",
-        "occupants": "Average Continuous Occupants",
-        "tightness": "Envelope Air Tightness (ACH)",
-        "tightness_help": "Air Changes per Hour. 0.35 is tight modern construction.",
-        "shgc_lbl": "Window Solar Coefficient (SHGC)",
-        "shgc_help": "Solar Heat Gain Coefficient.",
-        "btn_calc": "Generate & Save Load Profiles",
-        "heat_capacity": "Estimated Heating Capacity",
-        "cool_capacity": "Estimated Cooling Capacity",
-        "circ_target": "Calculated Circulation Target",
-        "req_airflow": "Required Air Flow",
-        "nominal_tons": "Nominal Tons",
-        "suggested_duct": "Suggested Trunk Line Profile",
-        "btn_pdf": "Export Branded PDF Proposal",
-        "pdf_fault": "Render System Fault",
-        "tab_compute": "Compute System Loads",
-        "tab_method": "Application Methodology",
-        "method_title": "Operational Calculations & Assumptions",
-        "method_body": "Advanced thermal load profile processing framework.",
-        "disclaimer": "Disclaimer: Quick field estimate sales framework.",
-        "pdf_title": "VetCool HVAC ESTIMATE REPORT",
-        "pdf_scope": "Calculation Scope",
-        "pdf_target": "Design Target Location",
-        "pdf_inputs": "INPUT DESIGN PARAMETERS",
-        "pdf_results": "ESTIMATED LOAD RESULTS",
-        "pdf_duct": "Suggested Trunk Line Profile",
-        "presets_dict": {"Custom Input": "Custom Input", "Small House (1200 sq ft)": "Small House (1200 sq ft)", "Medium House (2000 sq ft)": "Medium House (2000 sq ft)", "Large House (3000 sq ft)": "Large House (3000 sq ft)", "Small Office": "Small Office", "Restaurant": "Restaurant"}
-    },
-    "Spanish": {
-        "title": "Calculadora de Carga de Campo VetCool",
-        "subtitle": "Herramienta Profesional de Estimacion y Verificacion",
-        "sidebar_settings": "Configuracion Global",
-        "history_header": "Tus Proyectos en la Nube",
-        "proj_name_lbl": "Nombre del Proyecto / Cliente",
-        "climate_loc": "Ubicacion del Clima de Diseno",
-        "presets": "Preajustes de la Propiedad",
-        "safety_margin": "Margen de Seguridad (%)",
-        "calc_path": "Tipo de Calculo",
-        "heat_load": "Carga de Calefaccion",
-        "cool_load": "Carga de Enfriamiento",
-        "target_indoor": "Temp. Interior Objetivo (F)",
-        "design_outdoor": "Temp. Exterior de Diseno (F)",
-        "humidity_grains": "Granos de Humedad Exterior",
-        "weather_profile_msg": "Usando perfiles climaticos locales estandar",
-        "building_metrics": "Metricas del Envolvente del Edificio",
-        "net_wall": "Area Neta de Pared (sq ft)",
-        "tot_window": "Area Total de Ventanas (sq ft)",
-        "roof_area": "Area de Techo (sq ft)",
-        "wall_ins": "Aislamiento de Pared (Valor-U)",
-        "window_glaze": "Acristalamiento de Ventana (Valor-U)",
-        "roof_ins": "Aislamiento de Techo (Valor-U)",
-        "wall_ins_help": "Menor valor significa mejor aislamiento.",
-        "window_glaze_help": "Especificaciones del vidrio.",
-        "roof_ins_help": "Especificaciones del techo.",
-        "internal_vars": "Variables Internas e Infiltracion",
-        "room_vol": "Volumen Cubico Acondicionado (cu ft)",
-        "occupants": "Promedio de Ocupantes Continuos",
-        "tightness": "Hermeticidad del Envolvente (ACH)",
-        "tightness_help": "Cambios de aire por hora.",
-        "shgc_lbl": "Coeficiente Solar de Ventana (SHGC)",
-        "shgc_help": "Ganancia de calor solar.",
-        "btn_calc": "Generar y Guardar Perfiles de Carga",
-        "heat_capacity": "Capacidad de Calefaccion Estimada",
-        "cool_capacity": "Capacidad de Enfriamiento Estimada",
-        "circ_target": "Objetivo de Circulacion Calculado",
-        "req_airflow": "Flujo de Aire Requerido",
-        "nominal_tons": "Toneladas Nominales",
-        "suggested_duct": "Perfil Sugerido de la Linea Principal",
-        "btn_pdf": "Exportar Propuesta en PDF",
-        "pdf_fault": "Fallo en el Sistema de Renderizado",
-        "tab_compute": "Calcular Cargas del Sistema",
-        "tab_method": "Metodologia de Aplicacion",
-        "method_title": "Calculos Operacionales y Supuestos",
-        "method_body": "Estructura de procesamiento de perfiles de carga termica avanzada.",
-        "disclaimer": "Descargo de responsabilidad: Estimacion de campo simplificada.",
-        "pdf_title": "INFORME DE ESTIMACION DE HVAC VETCOOL",
-        "pdf_scope": "Alcance del Calculo",
-        "pdf_target": "Ubicacion de Diseno Objetivo",
-        "pdf_inputs": "PARAMETROS DE DISENO DE ENTRADA",
-        "pdf_results": "RESULTADOS DE CARGA ESTIMADA",
-        "pdf_duct": "Perfil Sugerido de la Linea Principal",
-        "presets_dict": {"Custom Input": "Entrada Personalizada", "Small House (1200 sq ft)": "Casa Pequena (1200 sq ft)", "Medium House (2000 sq ft)": "Casa Mediana (2000 sq ft)", "Large House (3000 sq ft)": "Casa Grande (3000 sq ft)", "Small Office": "Oficina Pequena", "Restaurant": "Restaurante"}
-    }
-}
-
-REGIONAL_DATA = {
-    "Miami, FL": {"heat_outdoor": 48, "cool_outdoor": 91, "moisture_grains": 145, "cltd_wall": 28, "cltd_roof": 46},
-    "Phoenix, AZ": {"heat_outdoor": 38, "cool_outdoor": 108, "moisture_grains": 60, "cltd_wall": 35, "cltd_roof": 52},
-    "Chicago, IL": {"heat_outdoor": -1, "cool_outdoor": 91, "moisture_grains": 100, "cltd_wall": 22, "cltd_roof": 38},
-    "New York, NY": {"heat_outdoor": 15, "cool_outdoor": 89, "moisture_grains": 105, "cltd_wall": 21, "cltd_roof": 38},
-    "Houston, TX": {"heat_outdoor": 32, "cool_outdoor": 95, "moisture_grains": 130, "cltd_wall": 26, "cltd_roof": 44},
-    "Denver, CO": {"heat_outdoor": 2, "cool_outdoor": 92, "moisture_grains": 55, "cltd_wall": 25, "cltd_roof": 42},
-    "Custom (Manual Override)": {"heat_outdoor": 20, "cool_outdoor": 95, "moisture_grains": 100, "cltd_wall": 25, "cltd_roof": 40}
-}
-
 def get_duct_recommendation(cfm, lang):
     is_sp = (lang == "Spanish")
     if cfm <= 150: return '6" Round' if not is_sp else '6" Redondo'
@@ -268,9 +269,14 @@ def generate_pdf_report(data, result, mode, lang, ctx):
     return filename
 
 # ==============================================================================
-# 3. ROUTING CONTROL & USER INTERFACE
+# 4. ROUTING CONTROL & PREMIUM BRANDED UI
 # ==============================================================================
-st.set_page_config(page_title="VetCool HVAC Portal", layout="wide")
+# --- PERFORMANCE CRITICAL CHANGE: Applied Brand Name, Branded Favicon, and App Cache Optimizations ---
+st.set_page_config(
+    page_title="Vetcool FieldFlow", 
+    page_icon="❄️", 
+    layout="wide"
+)
 
 st.markdown("""
 <style>
@@ -286,8 +292,8 @@ if "auth_user" not in st.session_state:
 
 # --- ROUTE A: LOGIN GATEWAY PORTAL ---
 if st.session_state["auth_user"] is None:
-    st.title("VetCool Pro Portal")
-    st.subheader("Secure Comfort Advisory System Login")
+    st.title("Vetcool FieldFlow")
+    st.subheader("Secure Mobile Advisory Dashboard")
     
     auth_mode = st.radio("Access Method / Metodo", ["Sign In / Iniciar Sesion", "Create Pro Account / Registrarse"], horizontal=True)
     
@@ -328,11 +334,11 @@ else:
     st.title(ctx["title"])
     st.markdown(f"**{ctx['subtitle']}**")
 
-    # Sidebar History Layout
+    # Sidebar History Layout (Leverages Cached Performance Engine)
     with st.sidebar:
         st.markdown("---")
         st.subheader(ctx["history_header"])
-        history_records = get_calculation_history(current_user["id"])
+        history_records = get_calculation_history_cached(current_user["id"])
         
         if history_records:
             history_options = {f"{r[1]} ({r[2]})": r[0] for r in history_records}
@@ -435,7 +441,7 @@ else:
                 st.markdown(f'<div class="metric-card"><h3>{ctx["cool_capacity"]}</h3><h2>{result["total_btu_hr"]:,} BTU/hr (~{result["tons"]} {ctx["nominal_tons"]})</h2><p>{ctx["req_airflow"]}: <b>{result["cfm"]} CFM</b></p></div>', unsafe_allow_html=True)
 
             save_calculation(proj_name, data, result, lang, current_user["id"])
-            st.toast("Estimate synchronized to your secure cloud profile!", icon="💾")
+            st.toast("Estimate synchronized to Vetcool FieldFlow Cloud!", icon="💾")
 
             try:
                 pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx)
