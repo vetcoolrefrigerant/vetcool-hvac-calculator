@@ -248,18 +248,17 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     logo_path = os.path.join(current_dir, "vetcool_logo.png")
     
     if os.path.exists(logo_path):
-        # Places logo centered at the top, scaled to a clean 50mm width
         pdf.image(logo_path, x=80, y=10, w=50)
-        pdf.ln(35) # Creates structural clearance below the logo image
+        pdf.ln(35) 
     else:
         pdf.ln(10)
         
     pdf.set_font("Helvetica", "B", 18)
     pdf.cell(0, 10, str(ctx["pdf_title"]), ln=True, align="C")
     
-    # Decorative accent divider line mimicking the app theme
-    pdf.set_draw_color(227, 6, 19) # Vetcool Red
-    pdf.set_linewidth(1)
+    # FIX: Native underscore syntax parameter
+    pdf.set_draw_color(227, 6, 19) 
+    pdf.set_line_width(1)
     pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
     pdf.ln(8)
     
@@ -282,22 +281,16 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf.ln(4)
     
     pdf.set_font("Helvetica", "", 10)
-    # Double Column Layout for Envelope Metrics
     pdf.cell(95, 6, f"Net Wall Area: {data['area_walls']:,} sq ft  (U-value: {data['u_walls']})", ln=False)
     pdf.cell(95, 6, f"Indoor Target Temp: {data['t_indoor']} F", ln=True)
-    
     pdf.cell(95, 6, f"Total Window Area: {data['area_windows']:,} sq ft  (U-value: {data['u_windows']})", ln=False)
     pdf.cell(95, 6, f"Outdoor Design Temp: {data['t_outdoor']} F", ln=True)
-    
     pdf.cell(95, 6, f"Ceiling/Roof Area: {data['area_roof']:,} sq ft  (U-value: {data['u_roof']})", ln=False)
     pdf.cell(95, 6, f"Outdoor Moisture: {data['moisture_grains']} Grains", ln=True)
-    
     pdf.cell(95, 6, f"Conditioned Space Volume: {data['volume']:,} cu ft", ln=False)
     pdf.cell(95, 6, f"Envelope Air Tightness: {data['ach']} ACH", ln=True)
-    
     pdf.cell(95, 6, f"Continuous Occupants Count: {data['occupants']}", ln=False)
     pdf.cell(95, 6, f"Solar Heat Coefficient (SHGC): {data['shgc']}", ln=True)
-    
     pdf.cell(95, 6, f"Safety Margin Cushion Applied: {int(round((data['safety_factor'] - 1) * 100))}%", ln=True)
     pdf.ln(8)
     
@@ -307,10 +300,9 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(4)
     
-    # Highlight Box for Core Capacity
     pdf.set_fill_color(245, 247, 250)
     pdf.set_font("Helvetica", "B", 14)
-    pdf.set_text_color(227, 6, 19) # Highlight Red
+    pdf.set_text_color(227, 6, 19)
     
     if "Heating" in str(mode):
         pdf.cell(0, 12, f"  TOTAL ESTIMATED HEATING CAPACITY: {result['total_btu_hr']:,} BTU/hr", ln=True, fill=True)
@@ -322,7 +314,6 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf.set_text_color(0, 0, 0)
     pdf.cell(95, 8, f"Required System Airflow: {result['cfm']:,} CFM", ln=False)
     
-    # Pulls localized duct recommendation directly into the PDF layout
     duct_size = get_duct_recommendation(result['cfm'], lang)
     pdf.cell(95, 8, f"{ctx['pdf_duct']}: {duct_size}", ln=True)
     
@@ -559,4 +550,3 @@ else:
                 os.remove(pdf_file)
             except Exception as e:
                 st.error(f"{ctx['pdf_fault']}: {str(e)}")
-
