@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 from fpdf import FPDF
 from datetime import datetime
@@ -9,7 +8,6 @@ from supabase import create_client, Client
 # ==============================================================================
 # 0. SPEED OPTIMIZATION RESOURCE CACHING LAYER
 # ==============================================================================
-# Memory-caches static regional lookup profiles so they load instantly without rebuilds
 @st.cache_data
 def load_static_environmental_profiles():
     lang_dict = {
@@ -138,7 +136,6 @@ def load_static_environmental_profiles():
 
 LANG_DICT, REGIONAL_DATA = load_static_environmental_profiles()
 
-# Caches project lookup data for 60 seconds to stop database overhead latency on simple clicks
 @st.cache_data(ttl=60)
 def get_calculation_history_cached(user_id):
     return get_calculation_history(user_id)
@@ -152,7 +149,6 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or st.secrets.get("SUPABASE_KEY", 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def supabase_auth(email, password, action="login"):
-    """Handles secure cloud signup and login natively via the Supabase client"""
     try:
         if action == "signup":
             res = supabase.auth.sign_up({"email": email, "password": password})
@@ -161,18 +157,10 @@ def supabase_auth(email, password, action="login"):
             res = supabase.auth.sign_in_with_password({"email": email, "password": password})
             return {"success": True, "user_id": res.user.id, "email": res.user.email}
     except Exception as e:
-        err_msg = str(e)
-        if "error_description" in err_msg:
-            try:
-                import json
-                err_dict = json.loads(err_msg.replace("'", '"'))
-                err_msg = err_dict.get("error_description", err_msg)
-            except:
-                pass
-        return {"success": False, "error": err_msg}
+        return {"success": False, "error": str(e)}
 
 # ==============================================================================
-# 2. LIVE SECURE DATA TRANSACTION LAYER (DIRECT API COUPLING)
+# 2. LIVE SECURE DATA TRANSACTION LAYER
 # ==============================================================================
 def save_calculation(name, data, result, lang_choice, user_id):
     payload = {
@@ -189,14 +177,12 @@ def save_calculation(name, data, result, lang_choice, user_id):
     try:
         url = f"{SUPABASE_URL}/rest/v1/calculations"
         headers = {
-            "apiKey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal"
+            "apiKey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json", "Prefer": "return=minimal"
         }
         response = requests.post(url, json=payload, headers=headers)
         if response.status_code in [200, 201]:
-            st.cache_data.clear() # Flushes history cache instantly so the new item loads immediately
+            st.cache_data.clear()
     except Exception as e:
         st.error(f"Cloud Save Interrupted: {str(e)}")
 
@@ -269,33 +255,56 @@ def generate_pdf_report(data, result, mode, lang, ctx):
     return filename
 
 # ==============================================================================
-# 4. ROUTING CONTROL & PREMIUM BRANDED UI
+# 4. ROUTING CONTROL & USER INTERFACE ENGINE
 # ==============================================================================
-# --- PERFORMANCE CRITICAL CHANGE: Applied Brand Name, Branded Favicon, and App Cache Optimizations ---
 st.set_page_config(
     page_title="Vetcool FieldFlow", 
     page_icon="❄️", 
     layout="wide"
 )
 
+# BRAND SPECIFIC PREMIUM CSS OVERRIDES (Matches the Mock-up Design exactly)
 st.markdown("""
 <style>
+    /* Dark Slate Canvas Base */
     .stApp { background-color: #0E1117; color: #FFFFFF; }
-    .stButton>button { background-color: #E30613; color: white; font-weight: bold; border-radius: 6px; }
-    h1, h2, h3, label { color: #FFFFFF !important; }
-    .metric-card { background-color: #1E232A; padding: 20px; border-radius: 10px; border-left: 5px solid #E30613; margin-bottom: 15px; }
+    
+    /* Top Accent Rule */
+    hr.accent-bar { border-top: 3px solid #E30613; margin-top: -50px; margin-bottom: 30px; }
+    
+    /* Centered Text Layout */
+    .centered-header { text-align: center; margin-top: 10px; margin-bottom: 25px; }
+    .centered-header h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 2.2rem; color: #FFFFFF; margin-bottom: 4px; }
+    .centered-header p { font-size: 1.1rem; color: #A0AAB4; font-weight: 400; }
+    
+    /* Form Inputs and Interactive Element Rules */
+    .stButton>button { background-color: #E30613; color: white; font-weight: bold; border-radius: 6px; border: none; transition: 0.3s; }
+    .stButton>button:hover { background-color: #b2050f; border: none; }
+    
+    /* Sidebar Cleanup to match mock-up spacing */
+    section[data-testid="stSidebar"] { background-color: #161A22; border-right: 1px solid #21262D; }
+    
+    /* Results Block */
+    .metric-card { background-color: #161A22; padding: 25px; border-radius: 10px; border-left: 5px solid #E30613; border-right: 1px solid #21262D; border-top: 1px solid #21262D; border-bottom: 1px solid #21262D; margin-bottom: 15px; }
 </style>
 """, unsafe_allow_html=True)
 
 if "auth_user" not in st.session_state:
     st.session_state["auth_user"] = None
 
-# --- ROUTE A: LOGIN GATEWAY PORTAL ---
+# --- ROUTE A: PORTAL ACCESS GATEWAY ---
 if st.session_state["auth_user"] is None:
-    st.title("Vetcool FieldFlow")
-    st.subheader("Secure Mobile Advisory Dashboard")
+    st.markdown('<hr class="accent-bar">', unsafe_allow_html=True)
     
-    auth_mode = st.radio("Access Method / Metodo", ["Sign In / Iniciar Sesion", "Create Pro Account / Registrarse"], horizontal=True)
+    # Centers logo inside the Login Gateway Portal
+    col_img_l, col_img_c, col_img_r = st.columns([1, 2, 1])
+    with col_img_c:
+        if os.path.exists("vetcool_logo.png"):
+            st.image("vetcool_logo.png", use_container_width=True)
+    
+    st.markdown('<div class="centered-header"><h1>Vetcool FieldFlow</h1><p>Secure Field Engineering Advisory Gateway</p></div>', unsafe_allow_html=True)
+    
+    auth_mode = st.radio("Access Protocol", ["Sign In / Iniciar Sesion", "Create Pro Account / Registrarse"], horizontal=True)
     
     col_a, col_b = st.columns(2)
     with col_a:
@@ -314,27 +323,39 @@ if st.session_state["auth_user"] is None:
             if st.button("Register License Profile"):
                 res = supabase_auth(auth_email, auth_pass, action="signup")
                 if res["success"]:
-                    st.success("Registration Successful! Please sign in using your credentials.")
+                    st.success("Registration Complete. Proceed to Sign In.")
                 else:
-                    st.error(f"Registration Interrupted: {res['error']}")
+                    st.error(f"Registration Blocked: {res['error']}")
 
-# --- ROUTE B: AUTHENTICATED SaaS CALCULATOR CORE ---
+# --- ROUTE B: AUTHENTICATED VETCOOL FIELDFLOW CORE ---
 else:
     current_user = st.session_state["auth_user"]
     
+    # Custom Premium Top Utility Bar (Matches Mock-Up Identity placement)
+    st.markdown('<hr class="accent-bar">', unsafe_allow_html=True)
+    
+    # Main Workspace Layout Header with Center Aligned Corporate Brand Identity
+    col_l, col_c, col_r = st.columns([1.5, 2, 1.5])
+    with col_c:
+        if os.path.exists("vetcool_logo.png"):
+            st.image("vetcool_logo.png", use_container_width=True)
+        else:
+            # Fallback if image asset isn't pushed to directory yet
+            st.markdown('<div class="centered-header"><h1>VetCool</h1><p>Refrigerant</p></div>', unsafe_allow_html=True)
+
     with st.sidebar:
         lang = st.radio("Language / Idioma", ["English", "Spanish"], horizontal=True)
         ctx = LANG_DICT[lang]
-        st.caption(f"Authenticated as: **{current_user['email']}**")
+        st.caption(f"Authenticated: **{current_user['email']}**")
         if st.button("Sign Out / Cerrar Sesion"):
             st.session_state["auth_user"] = None
             st.session_state["override_data"] = None
             st.rerun()
 
-    st.title(ctx["title"])
-    st.markdown(f"**{ctx['subtitle']}**")
+    # Center text below the logo block
+    st.markdown(f'<div class="centered-header"><p>{ctx["subtitle"]}</p></div>', unsafe_allow_html=True)
 
-    # Sidebar History Layout (Leverages Cached Performance Engine)
+    # Sidebar History Lookup Pipeline
     with st.sidebar:
         st.markdown("---")
         st.subheader(ctx["history_header"])
@@ -351,7 +372,7 @@ else:
                     st.session_state["override_data"] = loaded_calc
                     st.success(f"Project pulled from secure sync!")
         else:
-            st.caption("No historical configurations logged under this account profile.")
+            st.caption("No historical configurations logged under this profile.")
 
         st.markdown("---")
         st.header(ctx["sidebar_settings"])
@@ -371,7 +392,7 @@ else:
         safety_slider = st.slider(ctx["safety_margin"], min_value=0, max_value=30, value=init_safety, step=5)
         safety_factor = 1.0 + (safety_slider / 100)
 
-    # Core Metrics Defaults
+    # Core Metric Defaults Processing Logic
     if preset == "Small House (1200 sq ft)": defaults = {"walls": 800, "windows": 150, "roof": 1200, "volume": 9600, "occupants": 3}
     elif preset == "Medium House (2000 sq ft)": defaults = {"walls": 1400, "windows": 250, "roof": 2000, "volume": 16000, "occupants": 5}
     elif preset == "Large House (3000 sq ft)": defaults = {"walls": 2000, "windows": 400, "roof": 3000, "volume": 24000, "occupants": 7}
