@@ -16,7 +16,7 @@ from email import encoders
 # ==============================================================================
 # 0. PERFORMANCE & HIGH-SPEED OPTIMIZATION CACHING LAYER
 # ==============================================================================
-@st.cache_data(ttl=300) # Extended TTL cache layer to optimize pipeline efficiency
+@st.cache_data(ttl=300) 
 def load_static_environmental_profiles():
     lang_dict = {
         "English": {
@@ -383,7 +383,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# BRAND SPECIFIC STYLE ENGINE (OPTIMIZED TO REDUCE RENDER JANK)
+# BRAND STYLE INFRASTRUCTURE (HIGH SPEED RESPONSIVE ENGINE)
 st.markdown("""
 <style>
     .stApp { background-color: #0E1117; color: #FFFFFF; }
@@ -392,21 +392,27 @@ st.markdown("""
     .centered-header h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 2.2rem; color: #FFFFFF; margin-bottom: 4px; }
     .centered-header p { font-size: 1.1rem; color: #A0AAB4; font-weight: 400; }
     
-    /* Brighter, larger, high-speed tap buttons */
+    /* --- JUMBO MAX-ILLUMINA ACTION BUTTONS --- */
     .stButton>button { 
-        background-color: #E30613 !important; 
-        color: white !important; 
-        font-weight: 700 !important; 
-        font-size: 1.2rem !important;
-        padding: 14px 28px !important;
-        border-radius: 8px !important; 
-        border: none !important; 
-        box-shadow: 0px 4px 15px rgba(227, 6, 19, 0.4) !important;
+        background-color: #FF1222 !important; 
+        color: #FFFFFF !important; 
+        font-weight: 800 !important; 
+        font-size: 1.35rem !important;
+        padding: 16px 32px !important;
+        border-radius: 10px !important; 
+        border: 2px solid #FF4D5A !important; 
+        box-shadow: 0px 0px 20px rgba(255, 18, 34, 0.6) !important;
         width: 100% !important;
         transition: transform 0.1s ease, background-color 0.2s ease !important; 
     }
-    .stButton>button:hover { background-color: #ff1222 !important; transform: translateY(-1px); }
-    .stButton>button:active { transform: translateY(1px); }
+    .stButton>button:hover { 
+        background-color: #FF3344 !important; 
+        box-shadow: 0px 0px 25px rgba(255, 51, 68, 0.8) !important;
+        transform: translateY(-2px); 
+    }
+    .stButton>button:active { 
+        transform: translateY(1px); 
+    }
     
     section[data-testid="stSidebar"] { background-color: #161A22; border-right: 1px solid #21262D; }
     .metric-card { background-color: #161A22; padding: 25px; border-radius: 10px; border-left: 5px solid #E30613; border-right: 1px solid #21262D; border-top: 1px solid #21262D; border-bottom: 1px solid #21262D; margin-bottom: 15px; }
@@ -448,12 +454,12 @@ if st.session_state["auth_user"] is None:
     
     st.markdown('<div class="centered-header"><h1>Vetcool FieldFlow</h1><p>Secure Field Engineering Advisory Gateway</p></div>', unsafe_allow_html=True)
     
-    # Cleaned English-only operational router toggles
+    # English-only explicit gateway toggles
     auth_mode = st.radio("Access Protocol", ["Sign In", "Create Pro Account"], horizontal=True)
     
     col_a, col_b = st.columns(2)
     with col_a:
-        auth_email = st.text_input("Email Address") # Removed 'Corporate' phrasing
+        auth_email = st.text_input("Email Address") 
         auth_pass = st.text_input("Account Password", type="password")
         st.markdown("<br>", unsafe_allow_html=True)
         
