@@ -14,9 +14,9 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 # ==============================================================================
-# 0. SPEED OPTIMIZATION RESOURCE CACHING LAYER
+# 0. PERFORMANCE & HIGH-SPEED OPTIMIZATION CACHING LAYER
 # ==============================================================================
-@st.cache_data
+@st.cache_data(ttl=300) # Extended TTL cache layer to optimize pipeline efficiency
 def load_static_environmental_profiles():
     lang_dict = {
         "English": {
@@ -144,7 +144,7 @@ def load_static_environmental_profiles():
 
 LANG_DICT, REGIONAL_DATA = load_static_environmental_profiles()
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=30)
 def get_calculation_history_cached(user_id):
     return get_calculation_history(user_id)
 
@@ -247,7 +247,6 @@ def calculate_cooling_load(data):
     return {'total_btu_hr': round(total_load), 'tons': round(total_load / 12000, 2), 'cfm': round(total_sensible / (1.08 * 20))}
 
 def send_pdf_email(recipient_email, file_path, project_name):
-    """Background delivery engine to forward structural PDFs directly to the technician's inbox"""
     smtp_server = os.environ.get("SMTP_SERVER") or st.secrets.get("SMTP_SERVER")
     smtp_port = os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT")
     smtp_password = os.environ.get("SMTP_PASSWORD") or st.secrets.get("SMTP_PASSWORD")
@@ -289,7 +288,6 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf = FPDF()
     pdf.add_page()
     
-    # --- 1. PREMIUM HEADER SECTION WITH LOGO ---
     current_dir = os.path.dirname(os.path.abspath(__file__))
     logo_path = os.path.join(current_dir, "vetcool_logo.png")
     
@@ -307,7 +305,6 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
     pdf.ln(8)
     
-    # --- 2. METADATA BRIEF ---
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(100, 100, 100)
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -317,7 +314,6 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf.cell(90, 6, f"Calculation Profile: {str(mode)}", ln=True, align="R")
     pdf.ln(6)
     
-    # --- 3. COMPLETE INPUT PARAMETERS READOUT ---
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 8, str(ctx["pdf_inputs"]), ln=True)
@@ -339,7 +335,6 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf.cell(95, 6, f"Safety Margin Cushion Applied: {int(round((data['safety_factor'] - 1) * 100))}%", ln=True)
     pdf.ln(8)
     
-    # --- 4. CALCULATION RESULTS ENGINE READOUT ---
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, str(ctx["pdf_results"]), ln=True)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
@@ -362,7 +357,6 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     duct_size = get_duct_recommendation(result['cfm'], lang)
     pdf.cell(95, 8, f"{ctx['pdf_duct']}: {duct_size}", ln=True)
     
-    # --- 5. CORPORATE FOOTER DISCLAIMER ---
     pdf.ln(15)
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(120, 120, 120)
@@ -378,7 +372,6 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
 current_dir = os.path.dirname(os.path.abspath(__file__))
 logo_icon_path = os.path.join(current_dir, "vetcool_logo.png")
 
-# Dynamic Favicon Setup
 if os.path.exists(logo_icon_path):
     favicon_asset = logo_icon_path
 else:
@@ -390,6 +383,7 @@ st.set_page_config(
     layout="wide"
 )
 
+# BRAND SPECIFIC STYLE ENGINE (OPTIMIZED TO REDUCE RENDER JANK)
 st.markdown("""
 <style>
     .stApp { background-color: #0E1117; color: #FFFFFF; }
@@ -397,12 +391,26 @@ st.markdown("""
     .centered-header { text-align: center; margin-top: 10px; margin-bottom: 25px; }
     .centered-header h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 2.2rem; color: #FFFFFF; margin-bottom: 4px; }
     .centered-header p { font-size: 1.1rem; color: #A0AAB4; font-weight: 400; }
-    .stButton>button { background-color: #E30613; color: white; font-weight: bold; border-radius: 6px; border: none; transition: 0.3s; }
-    .stButton>button:hover { background-color: #b2050f; border: none; }
+    
+    /* Brighter, larger, high-speed tap buttons */
+    .stButton>button { 
+        background-color: #E30613 !important; 
+        color: white !important; 
+        font-weight: 700 !important; 
+        font-size: 1.2rem !important;
+        padding: 14px 28px !important;
+        border-radius: 8px !important; 
+        border: none !important; 
+        box-shadow: 0px 4px 15px rgba(227, 6, 19, 0.4) !important;
+        width: 100% !important;
+        transition: transform 0.1s ease, background-color 0.2s ease !important; 
+    }
+    .stButton>button:hover { background-color: #ff1222 !important; transform: translateY(-1px); }
+    .stButton>button:active { transform: translateY(1px); }
+    
     section[data-testid="stSidebar"] { background-color: #161A22; border-right: 1px solid #21262D; }
     .metric-card { background-color: #161A22; padding: 25px; border-radius: 10px; border-left: 5px solid #E30613; border-right: 1px solid #21262D; border-top: 1px solid #21262D; border-bottom: 1px solid #21262D; margin-bottom: 15px; }
     
-    /* Mobile High-Visibility Portal Input Overrides */
     .stTextInput input {
         font-size: 1.15rem !important;
         padding: 12px 16px !important;
@@ -427,7 +435,7 @@ st.markdown("""
 if "auth_user" not in st.session_state:
     st.session_state["auth_user"] = None
 
-# --- ROUTE A: PORTAL ACCESS GATEWAY ---
+# --- ROUTE A: GATEWAY PORTAL ---
 if st.session_state["auth_user"] is None:
     st.markdown('<hr class="accent-bar">', unsafe_allow_html=True)
     
@@ -439,14 +447,17 @@ if st.session_state["auth_user"] is None:
             st.caption("Syncing Corporate Brand Assets...")
     
     st.markdown('<div class="centered-header"><h1>Vetcool FieldFlow</h1><p>Secure Field Engineering Advisory Gateway</p></div>', unsafe_allow_html=True)
-    auth_mode = st.radio("Access Protocol", ["Sign In / Iniciar Sesion", "Create Pro Account / Registrarse"], horizontal=True)
+    
+    # Cleaned English-only operational router toggles
+    auth_mode = st.radio("Access Protocol", ["Sign In", "Create Pro Account"], horizontal=True)
     
     col_a, col_b = st.columns(2)
     with col_a:
-        auth_email = st.text_input("Corporate Email Address")
+        auth_email = st.text_input("Email Address") # Removed 'Corporate' phrasing
         auth_pass = st.text_input("Account Password", type="password")
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        if auth_mode == "Sign In / Iniciar Sesion":
+        if auth_mode == "Sign In":
             if st.button("Unlock Core Dashboard"):
                 res = supabase_auth(auth_email, auth_pass, action="login")
                 if res["success"]:
@@ -462,7 +473,7 @@ if st.session_state["auth_user"] is None:
                 else:
                     st.error(f"Registration Blocked: {res['error']}")
 
-# --- ROUTE B: AUTHENTICATED VETCOOL FIELDFLOW CORE ---
+# --- ROUTE B: AUTHENTICATED CORE APP ---
 else:
     current_user = st.session_state["auth_user"]
     st.markdown('<hr class="accent-bar">', unsafe_allow_html=True)
@@ -573,7 +584,7 @@ else:
 
         st.markdown("---")
         
-        if st.button(ctx["btn_calc"], type="primary", use_container_width=True):
+        if st.button(ctx["btn_calc"], type="primary"):
             data = {
                 'location': location, 't_indoor': t_indoor, 't_outdoor': t_outdoor, 'moisture_grains': moisture_grains,
                 'cltd_wall': cltd_wall, 'cltd_roof': cltd_roof, 'area_walls': area_walls, 'u_walls': u_walls,
@@ -593,7 +604,6 @@ else:
 
             try:
                 pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx, proj_name)
-                
                 mail_success, mail_error = send_pdf_email(current_user["email"], pdf_file, proj_name)
                 if mail_success:
                     st.success(f"📧 Branded proposal automatically sent to **{current_user['email']}**")
