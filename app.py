@@ -383,7 +383,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# BRAND STYLE INFRASTRUCTURE (HIGH SPEED RESPONSIVE ENGINE)
+# BRAND STYLE INFRASTRUCTURE (WITH AGGRESSIVE SUB-ELEMENT BUTTON OVERRIDES)
 st.markdown("""
 <style>
     .stApp { background-color: #0E1117; color: #FFFFFF; }
@@ -392,26 +392,32 @@ st.markdown("""
     .centered-header h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 2.2rem; color: #FFFFFF; margin-bottom: 4px; }
     .centered-header p { font-size: 1.1rem; color: #A0AAB4; font-weight: 400; }
     
-    /* --- JUMBO MAX-ILLUMINA ACTION BUTTONS --- */
-    .stButton>button { 
+    /* --- ULTIMATE STARK-WHITE TEXT JUMBO BUTTON OVERRIDE --- */
+    div.stButton > button { 
         background-color: #FF1222 !important; 
-        color: #FFFFFF !important; 
-        font-weight: 800 !important; 
-        font-size: 1.35rem !important;
-        padding: 16px 32px !important;
-        border-radius: 10px !important; 
         border: 2px solid #FF4D5A !important; 
-        box-shadow: 0px 0px 20px rgba(255, 18, 34, 0.6) !important;
+        border-radius: 10px !important; 
+        padding: 16px 32px !important;
         width: 100% !important;
-        transition: transform 0.1s ease, background-color 0.2s ease !important; 
+        box-shadow: 0px 0px 25px rgba(255, 18, 34, 0.7) !important;
+        transition: all 0.1s ease-in-out !important; 
     }
-    .stButton>button:hover { 
+    
+    /* Forces absolute text contrast matching the input forms */
+    div.stButton > button * {
+        color: #FFFFFF !important;
+        font-weight: 800 !important;
+        font-size: 1.4rem !important;
+    }
+    
+    div.stButton > button:hover { 
         background-color: #FF3344 !important; 
-        box-shadow: 0px 0px 25px rgba(255, 51, 68, 0.8) !important;
-        transform: translateY(-2px); 
+        box-shadow: 0px 0px 35px rgba(255, 51, 68, 0.9) !important;
+        transform: translateY(-2px) !important; 
     }
-    .stButton>button:active { 
-        transform: translateY(1px); 
+    
+    div.stButton > button:active { 
+        transform: translateY(1px) !important; 
     }
     
     section[data-testid="stSidebar"] { background-color: #161A22; border-right: 1px solid #21262D; }
@@ -454,7 +460,6 @@ if st.session_state["auth_user"] is None:
     
     st.markdown('<div class="centered-header"><h1>Vetcool FieldFlow</h1><p>Secure Field Engineering Advisory Gateway</p></div>', unsafe_allow_html=True)
     
-    # English-only explicit gateway toggles
     auth_mode = st.radio("Access Protocol", ["Sign In", "Create Pro Account"], horizontal=True)
     
     col_a, col_b = st.columns(2)
