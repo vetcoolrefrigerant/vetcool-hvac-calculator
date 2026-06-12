@@ -401,6 +401,26 @@ st.markdown("""
     .stButton>button:hover { background-color: #b2050f; border: none; }
     section[data-testid="stSidebar"] { background-color: #161A22; border-right: 1px solid #21262D; }
     .metric-card { background-color: #161A22; padding: 25px; border-radius: 10px; border-left: 5px solid #E30613; border-right: 1px solid #21262D; border-top: 1px solid #21262D; border-bottom: 1px solid #21262D; margin-bottom: 15px; }
+    
+    /* Mobile High-Visibility Portal Input Overrides */
+    .stTextInput input {
+        font-size: 1.15rem !important;
+        padding: 12px 16px !important;
+        background-color: #1C212B !important;
+        color: #FFFFFF !important;
+        border: 1px solid #30363D !important;
+        border-radius: 8px !important;
+    }
+    .stTextInput input:focus {
+        border-color: #E30613 !important;
+        box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.25) !important;
+        background-color: #21262D !important;
+    }
+    .stTextInput [data-testid="stWidgetLabel"] p {
+        font-size: 1.05rem !important;
+        color: #FFFFFF !important;
+        font-weight: 500 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
