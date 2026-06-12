@@ -278,7 +278,6 @@ def send_pdf_email(recipient_email, file_path, project_name):
             server = smtplib.SMTP(smtp_server, int(smtp_port))
             server.starttls()
             
-        # FIX: Authenticate using the master company email asset instead of individual user emails
         server.login(smtp_user, smtp_password)
         server.sendmail(smtp_user, recipient_email, msg.as_string())
         server.quit()
@@ -376,9 +375,18 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
 # ==============================================================================
 # 4. ROUTING CONTROL & USER INTERFACE ENGINE
 # ==============================================================================
+current_dir = os.path.dirname(os.path.abspath(__file__))
+logo_icon_path = os.path.join(current_dir, "vetcool_logo.png")
+
+# Dynamic Favicon Setup
+if os.path.exists(logo_icon_path):
+    favicon_asset = logo_icon_path
+else:
+    favicon_asset = "❄️"
+
 st.set_page_config(
     page_title="Vetcool FieldFlow", 
-    page_icon="❄️", 
+    page_icon=favicon_asset, 
     layout="wide"
 )
 
@@ -405,10 +413,8 @@ if st.session_state["auth_user"] is None:
     
     col_img_l, col_img_c, col_img_r = st.columns([1, 2, 1])
     with col_img_c:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        logo_path = os.path.join(current_dir, "vetcool_logo.png")
-        if os.path.exists(logo_path):
-            st.image(logo_path, use_container_width=True)
+        if os.path.exists(logo_icon_path):
+            st.image(logo_icon_path, use_container_width=True)
         else:
             st.caption("Syncing Corporate Brand Assets...")
     
@@ -443,10 +449,8 @@ else:
     
     col_l, col_c, col_r = st.columns([1.5, 2, 1.5])
     with col_c:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        logo_path = os.path.join(current_dir, "vetcool_logo.png")
-        if os.path.exists(logo_path):
-            st.image(logo_path, use_container_width=True)
+        if os.path.exists(logo_icon_path):
+            st.image(logo_icon_path, use_container_width=True)
         else:
             st.markdown('<div class="centered-header"><h1>VetCool</h1><p>Refrigerant</p></div>', unsafe_allow_html=True)
 
@@ -570,7 +574,6 @@ else:
             try:
                 pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx, proj_name)
                 
-                # Dynamic back-channel pipeline targeting the master email asset configuration
                 mail_success, mail_error = send_pdf_email(current_user["email"], pdf_file, proj_name)
                 if mail_success:
                     st.success(f"📧 Branded proposal automatically sent to **{current_user['email']}**")
