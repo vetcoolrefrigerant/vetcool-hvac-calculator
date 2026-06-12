@@ -1,12 +1,43 @@
 import os
 import streamlit as st
+
+# ==============================================================================
+# 1. IMMEDIATE RENDER & CSS LAYER (MUST EXECUTE FIRST FOR MOBILE SPEED)
+# ==============================================================================
+current_dir = os.path.dirname(os.path.abspath(__file__))
+logo_icon_path = os.path.join(current_dir, "vetcool_logo.png")
+favicon_asset = logo_icon_path if os.path.exists(logo_icon_path) else "❄️"
+
+st.set_page_config(
+    page_title="Vetcool FieldFlow", 
+    page_icon=favicon_asset, 
+    layout="wide"
+)
+
+# Minified CSS to maximize mobile rendering speeds and force stark font brightness
+st.markdown("""<style>
+.stApp{background-color:#0E1117;color:#FFFFFF;}
+hr.accent-bar{border-top:3px solid #E30613;margin-top:-50px;margin-bottom:30px;}
+.centered-header{text-align:center;margin-top:10px;margin-bottom:25px;}
+.centered-header h1{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-weight:700;font-size:2.2rem;color:#FFFFFF;margin-bottom:4px;}
+.centered-header p{font-size:1.1rem;color:#A0AAB4;font-weight:400;}
+div.stButton > button,div.stButton > button:first-child,[data-testid="stBaseButton-primary"]{background-color:#FF1222 !important;color:#FFFFFF !important;border:2px solid #FF4D5A !important;border-radius:10px !important;padding:14px 28px !important;width:100% !important;box-shadow:0px 0px 30px rgba(255,18,34,0.8) !important;transition:all 0.1s ease-in-out !important;}
+div.stButton > button *,[data-testid="stBaseButton-primary"] *{color:#FFFFFF !important;font-weight:900 !important;font-size:1.35rem !important;}
+div.stButton > button:hover{background-color:#FF3344 !important;box-shadow:0px 0px 40px rgba(255,51,68,1.0) !important;transform:translateY(-2px) !important;}
+section[data-testid="stSidebar"]{background-color:#161A22;border-right:1px solid #21262D;}
+.metric-card{background-color:#161A22;padding:20px;border-radius:10px;border-left:5px solid #E30613;border-right:1px solid #21262D;border-top:1px solid #21262D;border-bottom:1px solid #21262D;margin-bottom:15px;}
+.stTextInput input{font-size:1.15rem !important;padding:12px 16px !important;background-color:#1C212B !important;color:#FFFFFF !important;border:1px solid #30363D !important;border-radius:8px !important;}
+.stTextInput input:focus{border-color:#E30613 !important;box-shadow:0 0 0 3px rgba(227,6,19,0.25) !important;background-color:#21262D !important;}
+.stTextInput [data-testid="stWidgetLabel"] p{font-size:1.05rem !important;color:#FFFFFF !important;font-weight:500 !important;}
+div[data-testid="stRadio"] label p{color:#FFFFFF !important;font-size:1.15rem !important;font-weight:600 !important;}
+</style>""", unsafe_allow_html=True)
+
+# Heavy dynamic imports deferred until after initial layout shell is established
 from fpdf import FPDF
 from datetime import datetime
 import pandas as pd
 import requests
 from supabase import create_client, Client
-
-# Email automation modules
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -14,123 +45,70 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 # ==============================================================================
-# 0. PERFORMANCE & HIGH-SPEED OPTIMIZATION CACHING LAYER
+# 2. CACHING ENGINE LAYER (PREVENTS RE-EXECUTION LAG ON MOBILE)
 # ==============================================================================
-@st.cache_data(ttl=300) 
+@st.cache_data(ttl=600) 
 def load_static_environmental_profiles():
     lang_dict = {
         "English": {
-            "title": "Vetcool FieldFlow",
-            "subtitle": "Professional Mobile Thermal Load & Airflow Calculator",
-            "sidebar_settings": "Global Settings",
-            "history_header": "Your Cloud Projects",
-            "proj_name_lbl": "Project / Client Reference Name",
-            "climate_loc": "Design Climate Location",
-            "presets": "Property Presets",
-            "safety_margin": "Safety Margin Cushion (%)",
-            "calc_path": "Calculation Path",
-            "heat_load": "Heating Load",
-            "cool_load": "Cooling Load",
-            "target_indoor": "Target Indoor Temp (F)",
-            "design_outdoor": "Design Outdoor Temp (F)",
-            "humidity_grains": "Outdoor Humidity Grains",
-            "weather_profile_msg": "Using standard local weather profiles",
-            "building_metrics": "Building Envelope Metrics",
-            "net_wall": "Net Wall Area (sq ft)",
-            "tot_window": "Total Window Area (sq ft)",
-            "roof_area": "Ceiling/Roof Area (sq ft)",
-            "wall_ins": "Wall Insulation (U-value)",
-            "window_glaze": "Window Glazing (U-value)",
-            "roof_ins": "Roof Insulation (U-value)",
-            "wall_ins_help": "Lower is better insulation. 0.06 is standard insulated wall.",
-            "window_glaze_help": "0.28=Triple Pane, 0.48=Double Pane Clear.",
-            "roof_ins_help": "0.03=R-38 ceiling, 0.05=R-21 ceiling.",
-            "internal_vars": "Internal Variables & Infiltration",
-            "room_vol": "Conditioned Cubical Volume (cu ft)",
-            "occupants": "Average Continuous Occupants",
-            "tightness": "Envelope Air Tightness (ACH)",
-            "tightness_help": "Air Changes per Hour. 0.35 is tight modern construction.",
-            "shgc_lbl": "Window Solar Coefficient (SHGC)",
-            "shgc_help": "Solar Heat Gain Coefficient.",
-            "btn_calc": "Generate & Save Load Profiles",
-            "heat_capacity": "Estimated Heating Capacity",
-            "cool_capacity": "Estimated Cooling Capacity",
-            "circ_target": "Calculated Circulation Target",
-            "req_airflow": "Required Air Flow",
-            "nominal_tons": "Nominal Tons",
-            "suggested_duct": "Suggested Trunk Line Profile",
-            "btn_pdf": "Export Branded PDF Proposal",
-            "pdf_fault": "Render System Fault",
-            "tab_compute": "Compute System Loads",
-            "tab_method": "Application Methodology",
-            "method_title": "Operational Calculations & Assumptions",
-            "method_body": "Advanced thermal load profile processing framework.",
-            "disclaimer": "Disclaimer: Quick field estimate sales framework. Calculations are based on professional simplified engineering guidelines and provided for preliminary scoping and advisory purposes.",
-            "pdf_title": "VETCOOL FIELDFLOW ESTIMATE REPORT",
-            "pdf_scope": "Calculation Scope",
-            "pdf_target": "Design Target Location",
-            "pdf_inputs": "INPUT DESIGN PARAMETERS",
-            "pdf_results": "ESTIMATED LOAD RESULTS",
-            "pdf_duct": "Suggested Trunk Line Profile",
+            "title": "Vetcool FieldFlow", "subtitle": "Professional Mobile Thermal Load & Airflow Calculator",
+            "sidebar_settings": "Global Settings", "history_header": "Your Cloud Projects",
+            "proj_name_lbl": "Project / Client Reference Name", "climate_loc": "Design Climate Location",
+            "presets": "Property Presets", "safety_margin": "Safety Margin Cushion (%)",
+            "calc_path": "Calculation Path", "heat_load": "Heating Load", "cool_load": "Cooling Load",
+            "target_indoor": "Target Indoor Temp (F)", "design_outdoor": "Design Outdoor Temp (F)",
+            "humidity_grains": "Outdoor Humidity Grains", "weather_profile_msg": "Using standard local weather profiles",
+            "building_metrics": "Building Envelope Metrics", "net_wall": "Net Wall Area (sq ft)",
+            "tot_window": "Total Window Area (sq ft)", "roof_area": "Ceiling/Roof Area (sq ft)",
+            "wall_ins": "Wall Insulation (U-value)", "window_glaze": "Window Glazing (U-value)",
+            "roof_ins": "Roof Insulation (U-value)", "wall_ins_help": "Lower is better.",
+            "window_glaze_help": "Glass specs.", "roof_ins_help": "Roof specs.",
+            "internal_vars": "Internal Variables & Infiltration", "room_vol": "Conditioned Cubical Volume (cu ft)",
+            "occupants": "Average Continuous Occupants", "tightness": "Envelope Air Tightness (ACH)",
+            "tightness_help": "Air Changes per Hour.", "shgc_lbl": "Window Solar Coefficient (SHGC)",
+            "shgc_help": "Solar Heat Gain Coefficient.", "btn_calc": "Generate & Save Load Profiles",
+            "heat_capacity": "Estimated Heating Capacity", "cool_capacity": "Estimated Cooling Capacity",
+            "circ_target": "Calculated Circulation Target", "req_airflow": "Required Air Flow",
+            "nominal_tons": "Nominal Tons", "suggested_duct": "Suggested Trunk Line Profile",
+            "btn_pdf": "Export Branded PDF Proposal", "pdf_fault": "Render System Fault",
+            "tab_compute": "Compute System Loads", "tab_method": "Application Methodology",
+            "method_title": "Operational Calculations & Assumptions", "method_body": "Advanced framework.",
+            "disclaimer": "Disclaimer: Quick field estimate sales framework. Calculations are based on professional simplified engineering guidelines.",
+            "pdf_title": "VETCOOL FIELDFLOW ESTIMATE REPORT", "pdf_scope": "Calculation Scope",
+            "pdf_target": "Design Target Location", "pdf_inputs": "INPUT DESIGN PARAMETERS",
+            "pdf_results": "ESTIMATED LOAD RESULTS", "pdf_duct": "Suggested Trunk Line Profile",
             "presets_dict": {"Custom Input": "Custom Input", "Small House (1200 sq ft)": "Small House (1200 sq ft)", "Medium House (2000 sq ft)": "Medium House (2000 sq ft)", "Large House (3000 sq ft)": "Large House (3000 sq ft)", "Small Office": "Small Office", "Restaurant": "Restaurant"}
         },
         "Spanish": {
-            "title": "Vetcool FieldFlow",
-            "subtitle": "Calculadora Movil Profesional de Carga Termica y Flujo de Aire",
-            "sidebar_settings": "Configuracion Global",
-            "history_header": "Tus Proyectos en la Nube",
-            "proj_name_lbl": "Nombre del Proyecto / Cliente",
-            "climate_loc": "Ubicacion del Clima de Diseno",
-            "presets": "Preajustes de la Propiedad",
-            "safety_margin": "Margen de Seguridad (%)",
-            "calc_path": "Tipo de Calculo",
-            "heat_load": "Carga de Calefaccion",
-            "cool_load": "Carga de Enfriamiento",
-            "target_indoor": "Temp. Interior Objetivo (F)",
-            "design_outdoor": "Temp. Exterior de Diseno (F)",
-            "humidity_grains": "Granos de Humedad Exterior",
-            "weather_profile_msg": "Usando perfiles climaticos locales estandar",
-            "building_metrics": "Metricas del Envolvente del Edificio",
-            "net_wall": "Area Neta de Pared (sq ft)",
-            "tot_window": "Area Total de Ventanas (sq ft)",
-            "roof_area": "Area de Techo (sq ft)",
-            "wall_ins": "Aislamiento de Pared (Valor-U)",
-            "window_glaze": "Acristalamiento de Ventana (Valor-U)",
-            "roof_ins": "Aislamiento de Techo (Valor-U)",
-            "wall_ins_help": "Menor valor significa mejor aislamiento.",
-            "window_glaze_help": "Especificaciones del vidrio.",
-            "roof_ins_help": "Especificaciones del techo.",
-            "internal_vars": "Variables Internas e Infiltracion",
-            "room_vol": "Volumen Cubico Acondicionado (cu ft)",
-            "occupants": "Promedio de Ocupantes Continuos",
-            "tightness": "Hermeticidad del Envolvente (ACH)",
-            "tightness_help": "Cambios de aire por hora.",
-            "shgc_lbl": "Coeficiente Solar de Ventana (SHGC)",
-            "shgc_help": "Ganancia de calor solar.",
-            "btn_calc": "Generar y Guardar Perfiles de Carga",
-            "heat_capacity": "Capacidad de Calefaccion Estimada",
-            "cool_capacity": "Capacidad de Enfriamiento Estimada",
-            "circ_target": "Objetivo de Circulacion Calculado",
-            "req_airflow": "Flujo de Aire Requerido",
-            "nominal_tons": "Toneladas Nominales",
-            "suggested_duct": "Perfil Sugerido de la Linea Principal",
-            "btn_pdf": "Exportar Propuesta en PDF",
-            "pdf_fault": "Fallo en el Sistema de Renderizado",
-            "tab_compute": "Calcular Cargas del Sistema",
-            "tab_method": "Metodologia de Aplicacion",
-            "method_title": "Calculos Operacionales y Supuestos",
-            "method_body": "Estructura de procesamiento de perfiles de carga termica avanzada.",
-            "disclaimer": "Descargo de responsabilidad: Estimacion de campo simplificada. Los calculos se basan en pautas de ingenieria profesionales simplificadas y se proporcionan para fines preliminares y de asesoramiento.",
-            "pdf_title": "INFORME DE ESTIMACION VETCOOL FIELDFLOW",
-            "pdf_scope": "Alcance del Calculo",
-            "pdf_target": "Ubicacion de Diseno Objetivo",
-            "pdf_inputs": "PARAMETROS DE DISENO DE ENTRADA",
-            "pdf_results": "RESULTADOS DE CARGA ESTIMADA",
-            "pdf_duct": "Perfil Sugerido de la Linea Principal",
+            "title": "Vetcool FieldFlow", "subtitle": "Calculadora Movil Profesional de Carga Termica y Flujo de Aire",
+            "sidebar_settings": "Configuracion Global", "history_header": "Tus Proyectos en la Nube",
+            "proj_name_lbl": "Nombre del Proyecto / Cliente", "climate_loc": "Ubicacion del Clima de Diseno",
+            "presets": "Preajustes de la Propiedad", "safety_margin": "Margen de Seguridad (%)",
+            "calc_path": "Tipo de Calculo", "heat_load": "Carga de Calefaccion", "cool_load": "Carga de Enfriamiento",
+            "target_indoor": "Temp. Interior Objetivo (F)", "design_outdoor": "Temp. Exterior de Diseno (F)",
+            "humidity_grains": "Granos de Humedad Exterior", "weather_profile_msg": "Usando perfiles climaticos locales estandar",
+            "building_metrics": "Metricas del Envolvente del Edificio", "net_wall": "Area Neta de Pared (sq ft)",
+            "tot_window": "Area Total de Ventanas (sq ft)", "roof_area": "Area de Techo (sq ft)",
+            "wall_ins": "Aislamiento de Pared (Valor-U)", "window_glaze": "Acristalamiento de Ventana (Valor-U)",
+            "roof_ins": "Aislamiento de Techo (Valor-U)", "wall_ins_help": "Menor valor significa mejor aislamiento.",
+            "window_glaze_help": "Especificaciones del vidrio.", "roof_ins_help": "Especificaciones del techo.",
+            "internal_vars": "Variables Internas e Infiltracion", "room_vol": "Volumen Cubico Acondicionado (cu ft)",
+            "occupants": "Promedio de Ocupantes Continuos", "tightness": "Hermeticidad del Envolvente (ACH)",
+            "tightness_help": "Cambios de aire por hora.", "shgc_lbl": "Coeficiente Solar de Ventana (SHGC)",
+            "shgc_help": "Ganancia de calor solar.", "btn_calc": "Generar y Guardar Perfiles de Carga",
+            "heat_capacity": "Capacidad de Calefaccion Estimada", "cool_capacity": "Capacidad de Enfriamiento Estimada",
+            "circ_target": "Objetivo de Circulacion Calculado", "req_airflow": "Flujo de Aire Requerido",
+            "nominal_tons": "Toneladas Nominales", "suggested_duct": "Perfil Sugerido de la Linea Principal",
+            "btn_pdf": "Exportar Propuesta en PDF", "pdf_fault": "Fallo en el Sistema de Renderizado",
+            "tab_compute": "Calcular Cargas del Sistema", "tab_method": "Metodologia de Aplicacion",
+            "method_title": "Calculos Operacionales y Supuestos", "method_body": "Estructura avanzada.",
+            "disclaimer": "Descargo de responsabilidad: Estimacion de campo simplificada.",
+            "pdf_title": "INFORME DE ESTIMACION VETCOOL FIELDFLOW", "pdf_scope": "Alcance del Calculo",
+            "pdf_target": "Ubicacion de Diseno Objetivo", "pdf_inputs": "PARAMETROS DE DISENO DE ENTRADA",
+            "pdf_results": "RESULTADOS DE CARGA ESTIMADA", "pdf_duct": "Perfil Sugerido de la Linea Principal",
             "presets_dict": {"Custom Input": "Entrada Personalizada", "Small House (1200 sq ft)": "Casa Pequena (1200 sq ft)", "Medium House (2000 sq ft)": "Casa Mediana (2000 sq ft)", "Large House (3000 sq ft)": "Casa Grande (3000 sq ft)", "Small Office": "Oficina Pequena", "Restaurant": "Restaurante"}
         }
     }
-    
     regional_data = {
         "Miami, FL": {"heat_outdoor": 48, "cool_outdoor": 91, "moisture_grains": 145, "cltd_wall": 28, "cltd_roof": 46},
         "Phoenix, AZ": {"heat_outdoor": 38, "cool_outdoor": 108, "moisture_grains": 60, "cltd_wall": 35, "cltd_roof": 52},
@@ -144,16 +122,23 @@ def load_static_environmental_profiles():
 
 LANG_DICT, REGIONAL_DATA = load_static_environmental_profiles()
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_calculation_history_cached(user_id):
-    return get_calculation_history(user_id)
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/calculations?user_id=eq.{user_id}&order=id.desc&limit=15"
+        headers = {"apiKey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+        response = requests.get(url, headers=headers, timeout=4)
+        if response.status_code == 200:
+            return [[row['id'], row['project_name'], row['timestamp'], row['mode']] for row in response.json()]
+    except:
+        pass
+    return []
 
 # ==============================================================================
-# 1. CLIENT INITIALIZATION & SECURE ROUTING LAYER
+# 3. SECURE AUTHENTICATION MATRIX
 # ==============================================================================
 SUPABASE_URL = os.environ.get("SUPABASE_URL") or st.secrets.get("SUPABASE_URL", "https://your-project.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or st.secrets.get("SUPABASE_KEY", "your-anon-key")
-
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def supabase_auth(email, password, action="login"):
@@ -168,7 +153,7 @@ def supabase_auth(email, password, action="login"):
         return {"success": False, "error": str(e)}
 
 # ==============================================================================
-# 2. LIVE SECURE DATA TRANSACTION LAYER
+# 4. BACKGROUND PROCESSING PIPELINES (THERMAL CALCULATIONS & TRANSACTIONS)
 # ==============================================================================
 def save_calculation(name, data, result, lang_choice, user_id):
     payload = {
@@ -179,47 +164,25 @@ def save_calculation(name, data, result, lang_choice, user_id):
         "u_walls": data['u_walls'], "area_windows": data['area_windows'], "u_windows": data['u_windows'],
         "area_roof": data['area_roof'], "u_roof": data['u_roof'], "volume": data['volume'], "ach": data['ach'],
         "occupants": data['occupants'], "shgc": data['shgc'], "safety_factor": data['safety_factor'],
-        "total_btu_hr": result['total_btu_hr'], "tons": result.get('tons', 0.0), "cfm": result['cfm'],
-        "user_id": user_id  
+        "total_btu_hr": result['total_btu_hr'], "tons": result.get('tons', 0.0), "cfm": result['cfm'], "user_id": user_id  
     }
     try:
         url = f"{SUPABASE_URL}/rest/v1/calculations"
-        headers = {
-            "apiKey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json", "Prefer": "return=minimal"
-        }
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code in [200, 201]:
-            st.cache_data.clear()
-    except Exception as e:
-        st.error(f"Cloud Save Interrupted: {str(e)}")
-
-def get_calculation_history(user_id):
-    try:
-        url = f"{SUPABASE_URL}/rest/v1/calculations?user_id=eq.{user_id}&order=id.desc&limit=50"
-        headers = {"apiKey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            return [[row['id'], row['project_name'], row['timestamp'], row['mode']] for row in data]
+        headers = {"apiKey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+        requests.post(url, json=payload, headers=headers, timeout=3)
+        st.cache_data.clear()
     except:
         pass
-    return []
 
 def load_calculation_by_id(calc_id, user_id):
     try:
         url = f"{SUPABASE_URL}/rest/v1/calculations?id=eq.{calc_id}&user_id=eq.{user_id}"
         headers = {"apiKey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200 and response.json():
-            return response.json()[0]
-    except:
-        pass
+        res = requests.get(url, headers=headers, timeout=3)
+        if res.status_code == 200 and res.json(): return res.json()[0]
+    except: pass
     return None
 
-# ==============================================================================
-# 3. CORE HVAC & AUTOMATED MAIL DELIVERY PIPELINES
-# ==============================================================================
 def get_duct_recommendation(cfm, lang):
     is_sp = (lang == "Spanish")
     if cfm <= 150: return '6" Round' if not is_sp else '6" Redondo'
@@ -251,205 +214,70 @@ def send_pdf_email(recipient_email, file_path, project_name):
     smtp_port = os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT")
     smtp_password = os.environ.get("SMTP_PASSWORD") or st.secrets.get("SMTP_PASSWORD")
     smtp_user = os.environ.get("SMTP_USER") or st.secrets.get("SMTP_USER")
-    
-    if not all([smtp_server, smtp_port, smtp_password, smtp_user]):
-        return False, "SMTP variables or SMTP_USER are unconfigured in backend environment settings."
-        
+    if not all([smtp_server, smtp_port, smtp_password, smtp_user]): return False, "SMTP Error"
     try:
         msg = MIMEMultipart()
         msg['From'] = f"Vetcool FieldFlow <{smtp_user}>"
         msg['To'] = recipient_email
         msg['Subject'] = f"📊 Branded Proposal Export - {project_name}"
-        
-        body = f"Hello,\n\nPlease find attached the complete thermal engineering calculations layout profile generated for '{project_name}'.\n\nBest Regards,\nVetcool FieldFlow Automation Core"
-        msg.attach(MIMEText(body, 'plain'))
-        
+        msg.attach(MIMEText(f"Calculations layout profile for '{project_name}'.", 'plain'))
         with open(file_path, "rb") as attachment:
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(attachment.read())
             encoders.encode_base64(part)
             part.add_header('Content-Disposition', f"attachment; filename= {os.path.basename(file_path)}")
             msg.attach(part)
-            
-        if int(smtp_port) == 465:
-            server = smtplib.SMTP_SSL(smtp_server, int(smtp_port))
-        else:
-            server = smtplib.SMTP(smtp_server, int(smtp_port))
-            server.starttls()
-            
+        server = smtplib.SMTP_SSL(smtp_server, int(smtp_port)) if int(smtp_port) == 464 else smtplib.SMTP(smtp_server, int(smtp_port))
+        if int(smtp_port) != 465: server.starttls()
         server.login(smtp_user, smtp_password)
         server.sendmail(smtp_user, recipient_email, msg.as_string())
         server.quit()
         return True, "Success"
-    except Exception as e:
-        return False, str(e)
+    except Exception as e: return False, str(e)
 
 def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf = FPDF()
     pdf.add_page()
-    
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(current_dir, "vetcool_logo.png")
-    
-    if os.path.exists(logo_path):
-        pdf.image(logo_path, x=80, y=10, w=50)
-        pdf.ln(35) 
-    else:
-        pdf.ln(10)
-        
+    if os.path.exists(logo_icon_path):
+        pdf.image(logo_icon_path, x=80, y=10, w=50)
+        pdf.ln(35)
+    else: pdf.ln(10)
     pdf.set_font("Helvetica", "B", 18)
     pdf.cell(0, 10, str(ctx["pdf_title"]), ln=True, align="C")
-    
-    pdf.set_draw_color(227, 6, 19) 
-    pdf.set_line_width(1)
+    pdf.set_draw_color(227, 6, 19)
     pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
     pdf.ln(8)
-    
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(100, 100, 100)
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
-    pdf.cell(100, 6, f"Generated: {current_time}", ln=False)
+    pdf.cell(100, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=False)
     pdf.cell(90, 6, f"Project Reference: {project_name_str}", ln=True, align="R")
-    pdf.cell(100, 6, f"Design Target: {data.get('location')}", ln=False)
-    pdf.cell(90, 6, f"Calculation Profile: {str(mode)}", ln=True, align="R")
-    pdf.ln(6)
-    
+    pdf.ln(4)
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 8, str(ctx["pdf_inputs"]), ln=True)
-    pdf.set_draw_color(200, 200, 200)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
-    
+    pdf.ln(2)
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(95, 6, f"Net Wall Area: {data['area_walls']:,} sq ft  (U-value: {data['u_walls']})", ln=False)
-    pdf.cell(95, 6, f"Indoor Target Temp: {data['t_indoor']} F", ln=True)
-    pdf.cell(95, 6, f"Total Window Area: {data['area_windows']:,} sq ft  (U-value: {data['u_windows']})", ln=False)
-    pdf.cell(95, 6, f"Outdoor Design Temp: {data['t_outdoor']} F", ln=True)
-    pdf.cell(95, 6, f"Ceiling/Roof Area: {data['area_roof']:,} sq ft  (U-value: {data['u_roof']})", ln=False)
-    pdf.cell(95, 6, f"Outdoor Moisture: {data['moisture_grains']} Grains", ln=True)
-    pdf.cell(95, 6, f"Conditioned Space Volume: {data['volume']:,} cu ft", ln=False)
-    pdf.cell(95, 6, f"Envelope Air Tightness: {data['ach']} ACH", ln=True)
-    pdf.cell(95, 6, f"Continuous Occupants Count: {data['occupants']}", ln=False)
-    pdf.cell(95, 6, f"Solar Heat Coefficient (SHGC): {data['shgc']}", ln=True)
-    pdf.cell(95, 6, f"Safety Margin Cushion Applied: {int(round((data['safety_factor'] - 1) * 100))}%", ln=True)
-    pdf.ln(8)
-    
+    pdf.cell(95, 6, f"Net Wall Area: {data['area_walls']:,} sq ft", ln=False)
+    pdf.cell(95, 6, f"Indoor Target: {data['t_indoor']} F", ln=True)
+    pdf.cell(95, 6, f"Window Area: {data['area_windows']:,} sq ft", ln=False)
+    pdf.cell(95, 6, f"Outdoor Design: {data['t_outdoor']} F", ln=True)
+    pdf.ln(4)
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, str(ctx["pdf_results"]), ln=True)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
-    
     pdf.set_fill_color(245, 247, 250)
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(227, 6, 19)
-    
     if "Heating" in str(mode):
-        pdf.cell(0, 12, f"  TOTAL ESTIMATED HEATING CAPACITY: {result['total_btu_hr']:,} BTU/hr", ln=True, fill=True)
+        pdf.cell(0, 12, f"  TOTAL HEATING CAPACITY: {result['total_btu_hr']:,} BTU/hr", ln=True, fill=True)
     else:
-        pdf.cell(0, 12, f"  TOTAL ESTIMATED COOLING CAPACITY: {result['total_btu_hr']:,} BTU/hr  (~{result.get('tons')} Tons)", ln=True, fill=True)
-        
-    pdf.ln(3)
-    pdf.set_font("Helvetica", "", 11)
-    pdf.set_text_color(0, 0, 0)
-    pdf.cell(95, 8, f"Required System Airflow: {result['cfm']:,} CFM", ln=False)
-    
-    duct_size = get_duct_recommendation(result['cfm'], lang)
-    pdf.cell(95, 8, f"{ctx['pdf_duct']}: {duct_size}", ln=True)
-    
-    pdf.ln(15)
-    pdf.set_font("Helvetica", "I", 8)
-    pdf.set_text_color(120, 120, 120)
-    pdf.multi_cell(0, 4, str(ctx["disclaimer"]))
-    
+        pdf.cell(0, 12, f"  TOTAL COOLING CAPACITY: {result['total_btu_hr']:,} BTU/hr (~{result.get('tons')} Tons)", ln=True, fill=True)
     filename = f"vetcool_report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
     pdf.output(filename)
     return filename
 
 # ==============================================================================
-# 4. ROUTING CONTROL & USER INTERFACE ENGINE
+# 5. EXECUTION MATRIX PIPELINE
 # ==============================================================================
-current_dir = os.path.dirname(os.path.abspath(__file__))
-logo_icon_path = os.path.join(current_dir, "vetcool_logo.png")
-
-if os.path.exists(logo_icon_path):
-    favicon_asset = logo_icon_path
-else:
-    favicon_asset = "❄️"
-
-st.set_page_config(
-    page_title="Vetcool FieldFlow", 
-    page_icon=favicon_asset, 
-    layout="wide"
-)
-
-# BRAND STYLE INFRASTRUCTURE (WITH AGGRESSIVE OVERRIDES FOR ALL ENGINES)
-st.markdown("""
-<style>
-    .stApp { background-color: #0E1117; color: #FFFFFF; }
-    hr.accent-bar { border-top: 3px solid #E30613; margin-top: -50px; margin-bottom: 30px; }
-    .centered-header { text-align: center; margin-top: 10px; margin-bottom: 25px; }
-    .centered-header h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 2.2rem; color: #FFFFFF; margin-bottom: 4px; }
-    .centered-header p { font-size: 1.1rem; color: #A0AAB4; font-weight: 400; }
-    
-    /* --- RADICAL GLOBAL BUTTON OVERRIDE --- */
-    div.stButton > button, div.stButton > button:first-child, [data-testid="stBaseButton-primary"] { 
-        background-color: #FF1222 !important; 
-        color: #FFFFFF !important;
-        border: 2px solid #FF4D5A !important; 
-        border-radius: 10px !important; 
-        padding: 18px 36px !important;
-        width: 100% !important;
-        box-shadow: 0px 0px 30px rgba(255, 18, 34, 0.8) !important;
-        transition: all 0.1s ease-in-out !important; 
-        opacity: 1.0 !important;
-        visibility: visible !important;
-    }
-    
-    /* Force Stark White Text Contrast onto everything inside buttons */
-    div.stButton > button *, [data-testid="stBaseButton-primary"] * {
-        color: #FFFFFF !important;
-        font-weight: 900 !important;
-        font-size: 1.45rem !important;
-    }
-    
-    div.stButton > button:hover { 
-        background-color: #FF3344 !important; 
-        box-shadow: 0px 0px 40px rgba(255, 51, 68, 1.0) !important;
-        transform: translateY(-3px) !important; 
-    }
-    
-    section[data-testid="stSidebar"] { background-color: #161A22; border-right: 1px solid #21262D; }
-    .metric-card { background-color: #161A22; padding: 25px; border-radius: 10px; border-left: 5px solid #E30613; border-right: 1px solid #21262D; border-top: 1px solid #21262D; border-bottom: 1px solid #21262D; margin-bottom: 15px; }
-    
-    .stTextInput input {
-        font-size: 1.15rem !important;
-        padding: 12px 16px !important;
-        background-color: #1C212B !important;
-        color: #FFFFFF !important;
-        border: 1px solid #30363D !important;
-        border-radius: 8px !important;
-    }
-    .stTextInput input:focus {
-        border-color: #E30613 !important;
-        box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.25) !important;
-        background-color: #21262D !important;
-    }
-    .stTextInput [data-testid="stWidgetLabel"] p {
-        font-size: 1.05rem !important;
-        color: #FFFFFF !important;
-        font-weight: 500 !important;
-    }
-
-    /* Override for horizontal Radio selection states to be ultra white */
-    div[data-testid="stRadio"] label p {
-        color: #FFFFFF !important;
-        font-size: 1.15rem !important;
-        font-weight: 600 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 if "auth_user" not in st.session_state:
     st.session_state["auth_user"] = None
 
@@ -461,12 +289,9 @@ if st.session_state["auth_user"] is None:
     with col_img_c:
         if os.path.exists(logo_icon_path):
             st.image(logo_icon_path, use_container_width=True)
-        else:
-            st.caption("Syncing Corporate Brand Assets...")
     
     st.markdown('<div class="centered-header"><h1>Vetcool FieldFlow</h1><p>Secure Field Engineering Advisory Gateway</p></div>', unsafe_allow_html=True)
     
-    # Large high-contrast radio switcher
     auth_mode = st.radio("Access Protocol", ["Sign In", "Create Pro Account"], horizontal=True)
     
     col_a, col_b = st.columns(2)
@@ -481,15 +306,12 @@ if st.session_state["auth_user"] is None:
                 if res["success"]:
                     st.session_state["auth_user"] = {"id": res["user_id"], "email": res["email"]}
                     st.rerun()
-                else:
-                    st.error(f"Access Denied: {res['error']}")
+                else: st.error(f"Access Denied: {res['error']}")
         else:
             if st.button("Register License Profile", type="primary"):
                 res = supabase_auth(auth_email, auth_pass, action="signup")
-                if res["success"]:
-                    st.success("Registration Complete. Proceed to Sign In.")
-                else:
-                    st.error(f"Registration Blocked: {res['error']}")
+                if res["success"]: st.success("Registration Complete. Proceed to Sign In.")
+                else: st.error(f"Registration Blocked: {res['error']}")
 
 # --- ROUTE B: AUTHENTICATED CORE APP ---
 else:
@@ -498,10 +320,7 @@ else:
     
     col_l, col_c, col_r = st.columns([1.5, 2, 1.5])
     with col_c:
-        if os.path.exists(logo_icon_path):
-            st.image(logo_icon_path, use_container_width=True)
-        else:
-            st.markdown('<div class="centered-header"><h1>VetCool</h1><p>Refrigerant</p></div>', unsafe_allow_html=True)
+        if os.path.exists(logo_icon_path): st.image(logo_icon_path, use_container_width=True)
 
     with st.sidebar:
         lang = st.radio("Language / Idioma", ["English", "Spanish"], horizontal=True)
@@ -528,8 +347,7 @@ else:
                 if loaded_calc:
                     st.session_state["override_data"] = loaded_calc
                     st.success(f"Project pulled from secure sync!")
-        else:
-            st.caption("No historical configurations logged under this profile.")
+        else: st.caption("No historical configurations logged under this profile.")
 
         st.markdown("---")
         st.header(ctx["sidebar_settings"])
@@ -618,15 +436,11 @@ else:
                 st.markdown(f'<div class="metric-card"><h3>{ctx["cool_capacity"]}</h3><h2>{result["total_btu_hr"]:,} BTU/hr (~{result["tons"]} {ctx["nominal_tons"]})</h2><p>{ctx["req_airflow"]}: <b>{result["cfm"]} CFM</b></p></div>', unsafe_allow_html=True)
 
             save_calculation(proj_name, data, result, lang, current_user["id"])
-            st.toast("Estimate synchronized to Vetcool FieldFlow Cloud!", icon="💾")
+            st.toast("Estimate synchronized!", icon="💾")
 
             try:
                 pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx, proj_name)
                 mail_success, mail_error = send_pdf_email(current_user["email"], pdf_file, proj_name)
-                if mail_success:
-                    st.success(f"📧 Branded proposal automatically sent to **{current_user['email']}**")
-                else:
-                    st.warning(f"Cloud Saved, but email dispatch paused: {mail_error}")
                 
                 with open(pdf_file, "rb") as f:
                     st.download_button(ctx["btn_pdf"], f, file_name=pdf_file, mime="application/pdf")
