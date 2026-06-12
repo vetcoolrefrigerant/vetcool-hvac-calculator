@@ -6,6 +6,13 @@ import pandas as pd
 import requests
 from supabase import create_client, Client
 
+# Email automation modules
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
 # ==============================================================================
 # 0. SPEED OPTIMIZATION RESOURCE CACHING LAYER
 # ==============================================================================
@@ -211,7 +218,7 @@ def load_calculation_by_id(calc_id, user_id):
     return None
 
 # ==============================================================================
-# 3. CORE HVAC PROCESSING LOGIC
+# 3. CORE HVAC & AUTOMATED MAIL DELIVERY PIPELINES
 # ==============================================================================
 def get_duct_recommendation(cfm, lang):
     is_sp = (lang == "Spanish")
@@ -239,6 +246,46 @@ def calculate_cooling_load(data):
     total_load = (total_sensible + (0.68 * cfm_infil * max(0, data['moisture_grains'] - 65)) + (data['occupants'] * 200)) * data['safety_factor']
     return {'total_btu_hr': round(total_load), 'tons': round(total_load / 12000, 2), 'cfm': round(total_sensible / (1.08 * 20))}
 
+def send_pdf_email(recipient_email, file_path, project_name):
+    """Background delivery engine to forward structural PDFs directly to the technician's inbox"""
+    smtp_server = os.environ.get("SMTP_SERVER") or st.secrets.get("SMTP_SERVER")
+    smtp_port = os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT")
+    smtp_password = os.environ.get("SMTP_PASSWORD") or st.secrets.get("SMTP_PASSWORD")
+    
+    # Fail gracefully if environmental parameters are missing
+    if not all([smtp_server, smtp_port, smtp_password]):
+        return False, "SMTP variables are unconfigured in backend environment settings."
+        
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"Vetcool FieldFlow <{recipient_email}>"
+        msg['To'] = recipient_email
+        msg['Subject'] = f"📊 Branded Proposal Export - {project_name}"
+        
+        body = f"Hello,\n\nPlease find attached the complete thermal engineering calculations layout profile generated for '{project_name}'.\n\nBest Regards,\nVetcool FieldFlow Automation Core"
+        msg.attach(MIMEText(body, 'plain'))
+        
+        with open(file_path, "rb") as attachment:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(attachment.read())
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f"attachment; filename= {os.path.basename(file_path)}")
+            msg.attach(part)
+            
+        # Secure routing selection (SSL vs TLS verification handlers)
+        if int(smtp_port) == 465:
+            server = smtplib.SMTP_SSL(smtp_server, int(smtp_port))
+        else:
+            server = smtplib.SMTP(smtp_server, int(smtp_port))
+            server.starttls()
+            
+        server.login(recipient_email, smtp_password)
+        server.sendmail(recipient_email, recipient_email, msg.as_string())
+        server.quit()
+        return True, "Success"
+    except Exception as e:
+        return False, str(e)
+
 def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf = FPDF()
     pdf.add_page()
@@ -256,7 +303,6 @@ def generate_pdf_report(data, result, mode, lang, ctx, project_name_str):
     pdf.set_font("Helvetica", "B", 18)
     pdf.cell(0, 10, str(ctx["pdf_title"]), ln=True, align="C")
     
-    # FIX: Native underscore syntax parameter
     pdf.set_draw_color(227, 6, 19) 
     pdf.set_line_width(1)
     pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
@@ -336,28 +382,16 @@ st.set_page_config(
     layout="wide"
 )
 
-# BRAND SPECIFIC PREMIUM CSS OVERRIDES
 st.markdown("""
 <style>
-    /* Dark Slate Canvas Base */
     .stApp { background-color: #0E1117; color: #FFFFFF; }
-    
-    /* Top Accent Rule */
     hr.accent-bar { border-top: 3px solid #E30613; margin-top: -50px; margin-bottom: 30px; }
-    
-    /* Centered Text Layout */
     .centered-header { text-align: center; margin-top: 10px; margin-bottom: 25px; }
     .centered-header h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 2.2rem; color: #FFFFFF; margin-bottom: 4px; }
     .centered-header p { font-size: 1.1rem; color: #A0AAB4; font-weight: 400; }
-    
-    /* Form Inputs and Interactive Element Rules */
     .stButton>button { background-color: #E30613; color: white; font-weight: bold; border-radius: 6px; border: none; transition: 0.3s; }
     .stButton>button:hover { background-color: #b2050f; border: none; }
-    
-    /* Sidebar Cleanup to match mock-up spacing */
     section[data-testid="stSidebar"] { background-color: #161A22; border-right: 1px solid #21262D; }
-    
-    /* Results Block */
     .metric-card { background-color: #161A22; padding: 25px; border-radius: 10px; border-left: 5px solid #E30613; border-right: 1px solid #21262D; border-top: 1px solid #21262D; border-bottom: 1px solid #21262D; margin-bottom: 15px; }
 </style>
 """, unsafe_allow_html=True)
@@ -369,19 +403,16 @@ if "auth_user" not in st.session_state:
 if st.session_state["auth_user"] is None:
     st.markdown('<hr class="accent-bar">', unsafe_allow_html=True)
     
-    # Centers logo inside the Login Gateway Portal using runtime path compilation
     col_img_l, col_img_c, col_img_r = st.columns([1, 2, 1])
     with col_img_c:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         logo_path = os.path.join(current_dir, "vetcool_logo.png")
-        
         if os.path.exists(logo_path):
             st.image(logo_path, use_container_width=True)
         else:
             st.caption("Syncing Corporate Brand Assets...")
     
     st.markdown('<div class="centered-header"><h1>Vetcool FieldFlow</h1><p>Secure Field Engineering Advisory Gateway</p></div>', unsafe_allow_html=True)
-    
     auth_mode = st.radio("Access Protocol", ["Sign In / Iniciar Sesion", "Create Pro Account / Registrarse"], horizontal=True)
     
     col_a, col_b = st.columns(2)
@@ -408,15 +439,12 @@ if st.session_state["auth_user"] is None:
 # --- ROUTE B: AUTHENTICATED VETCOOL FIELDFLOW CORE ---
 else:
     current_user = st.session_state["auth_user"]
-    
     st.markdown('<hr class="accent-bar">', unsafe_allow_html=True)
     
-    # Main Workspace Layout Header with Absolute Path Resolved Corporate Brand Identity
     col_l, col_c, col_r = st.columns([1.5, 2, 1.5])
     with col_c:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         logo_path = os.path.join(current_dir, "vetcool_logo.png")
-        
         if os.path.exists(logo_path):
             st.image(logo_path, use_container_width=True)
         else:
@@ -431,10 +459,8 @@ else:
             st.session_state["override_data"] = None
             st.rerun()
 
-    # Center text below the logo block
     st.markdown(f'<div class="centered-header"><p>{ctx["subtitle"]}</p></div>', unsafe_allow_html=True)
 
-    # Sidebar History Lookup Pipeline
     with st.sidebar:
         st.markdown("---")
         st.subheader(ctx["history_header"])
@@ -443,7 +469,6 @@ else:
         if history_records:
             history_options = {f"{r[1]} ({r[2]})": r[0] for r in history_records}
             selected_history = st.selectbox("Select Past Project to Load", ["-- Select Active Project --"] + list(history_options.keys()))
-            
             if selected_history != "-- Select Active Project --":
                 chosen_id = history_options[selected_history]
                 loaded_calc = load_calculation_by_id(chosen_id, current_user["id"])
@@ -471,7 +496,6 @@ else:
         safety_slider = st.slider(ctx["safety_margin"], min_value=0, max_value=30, value=init_safety, step=5)
         safety_factor = 1.0 + (safety_slider / 100)
 
-    # Core Metric Defaults Processing Logic
     if preset == "Small House (1200 sq ft)": defaults = {"walls": 800, "windows": 150, "roof": 1200, "volume": 9600, "occupants": 3}
     elif preset == "Medium House (2000 sq ft)": defaults = {"walls": 1400, "windows": 250, "roof": 2000, "volume": 16000, "occupants": 5}
     elif preset == "Large House (3000 sq ft)": defaults = {"walls": 2000, "windows": 400, "roof": 3000, "volume": 24000, "occupants": 7}
@@ -543,10 +567,21 @@ else:
             save_calculation(proj_name, data, result, lang, current_user["id"])
             st.toast("Estimate synchronized to Vetcool FieldFlow Cloud!", icon="💾")
 
+            # --- AUTOMATED REPORT GENERATION & SILENT ROUTING ENGINE ---
             try:
                 pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx, proj_name)
+                
+                # Fire-and-forget back-channel email pipeline to the logged-in professional
+                mail_success, mail_error = send_pdf_email(current_user["email"], pdf_file, proj_name)
+                if mail_success:
+                    st.success(f"📧 Branded proposal automatically sent to **{current_user['email']}**")
+                else:
+                    st.warning(f"Cloud Saved, but email dispatch paused: {mail_error}")
+                
+                # Keep backup link on-screen just in case
                 with open(pdf_file, "rb") as f:
                     st.download_button(ctx["btn_pdf"], f, file_name=pdf_file, mime="application/pdf")
                 os.remove(pdf_file)
             except Exception as e:
                 st.error(f"{ctx['pdf_fault']}: {str(e)}")
+
