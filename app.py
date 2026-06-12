@@ -383,7 +383,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# BRAND STYLE INFRASTRUCTURE (WITH AGGRESSIVE SUB-ELEMENT BUTTON OVERRIDES)
+# BRAND STYLE INFRASTRUCTURE (WITH AGGRESSIVE OVERRIDES FOR ALL ENGINES)
 st.markdown("""
 <style>
     .stApp { background-color: #0E1117; color: #FFFFFF; }
@@ -392,32 +392,31 @@ st.markdown("""
     .centered-header h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 2.2rem; color: #FFFFFF; margin-bottom: 4px; }
     .centered-header p { font-size: 1.1rem; color: #A0AAB4; font-weight: 400; }
     
-    /* --- ULTIMATE STARK-WHITE TEXT JUMBO BUTTON OVERRIDE --- */
-    div.stButton > button { 
+    /* --- RADICAL GLOBAL BUTTON OVERRIDE --- */
+    div.stButton > button, div.stButton > button:first-child, [data-testid="stBaseButton-primary"] { 
         background-color: #FF1222 !important; 
+        color: #FFFFFF !important;
         border: 2px solid #FF4D5A !important; 
         border-radius: 10px !important; 
-        padding: 16px 32px !important;
+        padding: 18px 36px !important;
         width: 100% !important;
-        box-shadow: 0px 0px 25px rgba(255, 18, 34, 0.7) !important;
+        box-shadow: 0px 0px 30px rgba(255, 18, 34, 0.8) !important;
         transition: all 0.1s ease-in-out !important; 
+        opacity: 1.0 !important;
+        visibility: visible !important;
     }
     
-    /* Forces absolute text contrast matching the input forms */
-    div.stButton > button * {
+    /* Force Stark White Text Contrast onto everything inside buttons */
+    div.stButton > button *, [data-testid="stBaseButton-primary"] * {
         color: #FFFFFF !important;
-        font-weight: 800 !important;
-        font-size: 1.4rem !important;
+        font-weight: 900 !important;
+        font-size: 1.45rem !important;
     }
     
     div.stButton > button:hover { 
         background-color: #FF3344 !important; 
-        box-shadow: 0px 0px 35px rgba(255, 51, 68, 0.9) !important;
-        transform: translateY(-2px) !important; 
-    }
-    
-    div.stButton > button:active { 
-        transform: translateY(1px) !important; 
+        box-shadow: 0px 0px 40px rgba(255, 51, 68, 1.0) !important;
+        transform: translateY(-3px) !important; 
     }
     
     section[data-testid="stSidebar"] { background-color: #161A22; border-right: 1px solid #21262D; }
@@ -441,6 +440,13 @@ st.markdown("""
         color: #FFFFFF !important;
         font-weight: 500 !important;
     }
+
+    /* Override for horizontal Radio selection states to be ultra white */
+    div[data-testid="stRadio"] label p {
+        color: #FFFFFF !important;
+        font-size: 1.15rem !important;
+        font-weight: 600 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -460,6 +466,7 @@ if st.session_state["auth_user"] is None:
     
     st.markdown('<div class="centered-header"><h1>Vetcool FieldFlow</h1><p>Secure Field Engineering Advisory Gateway</p></div>', unsafe_allow_html=True)
     
+    # Large high-contrast radio switcher
     auth_mode = st.radio("Access Protocol", ["Sign In", "Create Pro Account"], horizontal=True)
     
     col_a, col_b = st.columns(2)
@@ -469,7 +476,7 @@ if st.session_state["auth_user"] is None:
         st.markdown("<br>", unsafe_allow_html=True)
         
         if auth_mode == "Sign In":
-            if st.button("Unlock Core Dashboard"):
+            if st.button("Unlock Core Dashboard", type="primary"):
                 res = supabase_auth(auth_email, auth_pass, action="login")
                 if res["success"]:
                     st.session_state["auth_user"] = {"id": res["user_id"], "email": res["email"]}
@@ -477,7 +484,7 @@ if st.session_state["auth_user"] is None:
                 else:
                     st.error(f"Access Denied: {res['error']}")
         else:
-            if st.button("Register License Profile"):
+            if st.button("Register License Profile", type="primary"):
                 res = supabase_auth(auth_email, auth_pass, action="signup")
                 if res["success"]:
                     st.success("Registration Complete. Proceed to Sign In.")
