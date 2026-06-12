@@ -251,14 +251,14 @@ def send_pdf_email(recipient_email, file_path, project_name):
     smtp_server = os.environ.get("SMTP_SERVER") or st.secrets.get("SMTP_SERVER")
     smtp_port = os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT")
     smtp_password = os.environ.get("SMTP_PASSWORD") or st.secrets.get("SMTP_PASSWORD")
+    smtp_user = os.environ.get("SMTP_USER") or st.secrets.get("SMTP_USER")
     
-    # Fail gracefully if environmental parameters are missing
-    if not all([smtp_server, smtp_port, smtp_password]):
-        return False, "SMTP variables are unconfigured in backend environment settings."
+    if not all([smtp_server, smtp_port, smtp_password, smtp_user]):
+        return False, "SMTP variables or SMTP_USER are unconfigured in backend environment settings."
         
     try:
         msg = MIMEMultipart()
-        msg['From'] = f"Vetcool FieldFlow <{recipient_email}>"
+        msg['From'] = f"Vetcool FieldFlow <{smtp_user}>"
         msg['To'] = recipient_email
         msg['Subject'] = f"📊 Branded Proposal Export - {project_name}"
         
@@ -272,15 +272,15 @@ def send_pdf_email(recipient_email, file_path, project_name):
             part.add_header('Content-Disposition', f"attachment; filename= {os.path.basename(file_path)}")
             msg.attach(part)
             
-        # Secure routing selection (SSL vs TLS verification handlers)
         if int(smtp_port) == 465:
             server = smtplib.SMTP_SSL(smtp_server, int(smtp_port))
         else:
             server = smtplib.SMTP(smtp_server, int(smtp_port))
             server.starttls()
             
-        server.login(recipient_email, smtp_password)
-        server.sendmail(recipient_email, recipient_email, msg.as_string())
+        # FIX: Authenticate using the master company email asset instead of individual user emails
+        server.login(smtp_user, smtp_password)
+        server.sendmail(smtp_user, recipient_email, msg.as_string())
         server.quit()
         return True, "Success"
     except Exception as e:
@@ -567,21 +567,18 @@ else:
             save_calculation(proj_name, data, result, lang, current_user["id"])
             st.toast("Estimate synchronized to Vetcool FieldFlow Cloud!", icon="💾")
 
-            # --- AUTOMATED REPORT GENERATION & SILENT ROUTING ENGINE ---
             try:
                 pdf_file = generate_pdf_report(data, result, mode_label, lang, ctx, proj_name)
                 
-                # Fire-and-forget back-channel email pipeline to the logged-in professional
+                # Dynamic back-channel pipeline targeting the master email asset configuration
                 mail_success, mail_error = send_pdf_email(current_user["email"], pdf_file, proj_name)
                 if mail_success:
                     st.success(f"📧 Branded proposal automatically sent to **{current_user['email']}**")
                 else:
                     st.warning(f"Cloud Saved, but email dispatch paused: {mail_error}")
                 
-                # Keep backup link on-screen just in case
                 with open(pdf_file, "rb") as f:
                     st.download_button(ctx["btn_pdf"], f, file_name=pdf_file, mime="application/pdf")
                 os.remove(pdf_file)
             except Exception as e:
                 st.error(f"{ctx['pdf_fault']}: {str(e)}")
-
